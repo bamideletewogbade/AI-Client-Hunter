@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common Helper Functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validates lead data structure to prevent injection and corruption
+    function isValidLead(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() <= 200 &&
+             data.category is string && data.category.size() <= 100 &&
+             (data.phone == null || (data.phone is string && data.phone.size() <= 40)) &&
+             data.address is string && data.address.size() <= 400 &&
+             (data.rating == null || data.rating is number) &&
+             (data.reviewsCount == null || data.reviewsCount is int) &&
+             (data.website == null || (data.website is string && data.website.size() <= 500)) &&
+             (data.mapsUrl == null || (data.mapsUrl is string && data.mapsUrl.size() <= 500)) &&
+             (data.latitude == null || data.latitude is number) &&
+             (data.longitude == null || data.longitude is number) &&
+             data.status in ['new', 'contacted', 'replied', 'interested', 'closed'] &&
+             data.notes is string && data.notes.size() <= 10000 &&
+             data.tags is list && data.tags.size() <= 20 &&
+             data.serviceType in ['ai_automation', 'web_design', 'hybrid'] &&
+             data.digitalPresenceScore is int &&
+             data.userId == request.auth.uid;
+    }
+
+    // Rules for individual CRM Leads
+    match /users/{userId}/leads/{leadId} {
+      allow read: if isOwner(userId);
+      
+      // Validation and Temporal checks on creation
+      allow create: if isOwner(userId) && 
+                      isValidId(leadId) && 
+                      isValidLead(incoming());
+      
+      // Immutability checks and field constraints on update
+      allow update: if isOwner(userId) && 
+                      isValidId(leadId) && 
+                      isValidLead(incoming()) && 
+                      incoming().createdAt == existing().createdAt;
+                      
+      allow delete: if isOwner(userId) && 
+                      isValidId(leadId);
+    }
+  }
+}

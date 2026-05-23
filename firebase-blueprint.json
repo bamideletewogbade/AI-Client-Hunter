@@ -1,0 +1,36 @@
+{
+  "entities": {
+    "Lead": {
+      "title": "Lead",
+      "description": "A CRM prospecting lead for web design or AI automation services",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "rating": { "type": "number" },
+        "reviewsCount": { "type": "integer" },
+        "website": { "type": "string" },
+        "mapsUrl": { "type": "string" },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "status": { "type": "string", "enum": ["new", "contacted", "replied", "interested", "closed"] },
+        "notes": { "type": "string" },
+        "tags": { "type": "array" },
+        "serviceType": { "type": "string", "enum": ["ai_automation", "web_design", "hybrid"] },
+        "digitalPresenceScore": { "type": "integer" },
+        "createdAt": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["id", "name", "category", "address", "status", "serviceType", "digitalPresenceScore", "createdAt", "userId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/leads/{leadId}": {
+      "schema": "Lead",
+      "description": "Collection of business leads tracked in the user's CRM pipeline"
+    }
+  }
+}
