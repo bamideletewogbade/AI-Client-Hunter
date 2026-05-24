@@ -22,6 +22,7 @@ import {
   Code,
   Activity
 } from 'lucide-react';
+import AIPipelineDashboard from './AIPipelineDashboard';
 
 interface ProductLandingProps {
   onStartApp: () => void;
@@ -217,25 +218,23 @@ Lead Performance Architect, Client Hunter`;
         <div className="absolute inset-0 opacity-40 pointer-events-none">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full border-x border-dashed border-zinc-200/60" />
           <div className="absolute top-1/3 left-0 w-full h-px border-t border-dashed border-zinc-200/60" />
-        </div>
-
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:items-center">
+        </div>                        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-12 lg:items-center">
           
           {/* Left Column: Bold Copy and Bullet Indicators */}
-          <div className="lg:col-span-7 space-y-8 text-left max-w-2xl">
+          <div className="lg:col-span-7 space-y-6 sm:space-y-8 text-left max-w-2xl">
             <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200/60 px-3 py-1 text-xs font-semibold text-blue-700">
               <Sparkles className="h-3.5 w-3.5 animate-pulse" />
               <span className="font-display tracking-tight">AI Client Acquisition Engine v2.0</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-zinc-900 font-display leading-[1.08]">
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-zinc-900 font-display leading-[1.08]">
               Fire your outbound agency. <br />
               <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-700">
                 Get real local clients.
               </span>
             </h1>
 
-            <p className="text-zinc-600 text-base sm:text-lg font-light leading-relaxed">
+            <p className="text-zinc-600 text-sm sm:text-lg font-light leading-relaxed">
               Why send thousands of spam emails? Our intelligent radar scans Google Maps, diagnoses slow or missing local business websites, and generates customized redesign mockups to win clients directly.
             </p>
 
@@ -291,7 +290,7 @@ Lead Performance Architect, Client Hunter`;
             <div className="absolute -inset-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl blur-xl opacity-10" />
 
             {/* Main Interactive Floating Widget Container */}
-            <div className="relative bg-zinc-900 text-white rounded-3xl border border-zinc-800 shadow-2xl p-6 sm:p-8">
+            <div className="relative bg-zinc-900 text-white rounded-2xl sm:rounded-3xl border border-zinc-800 shadow-2xl p-4 sm:p-8">
               
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
@@ -312,7 +311,7 @@ Lead Performance Architect, Client Hunter`;
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 font-mono">
                     Select Target Niche
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-2 gap-1.5 sm:gap-2">
                     {['Dentist', 'Roofer', 'Bakery', 'Coffee Shop', 'Barber', 'Gym'].map((n) => (
                       <button
                         key={n}
@@ -347,24 +346,23 @@ Lead Performance Architect, Client Hunter`;
                   </div>
                 </div>
 
-                {/* Big Action Call To Action Button with dynamic loading feedback */}
-                <button
-                  type="button"
-                  onClick={handleLaunchInstantScan}
-                  disabled={isSimulating}
-                  className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl py-3.5 px-4 text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-600/20 active:scale-98"
-                >
-                  {isSimulating ? (
-                    <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Scanning Maps Coordinates...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <span>Find {selectedNiche} Leads Near {targetCity.split(',')[0]} →</span>
-                    </>
-                  )}
-                </button>
+                {/* Big Action Call To Action Button with dynamic loading feedback */}            <button
+                          type="button"
+                          onClick={handleLaunchInstantScan}
+                          disabled={isSimulating}
+                          className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl py-3 sm:py-3.5 px-3 sm:px-4 text-[10px] sm:text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-600/20 active:scale-98"
+                        >
+                          {isSimulating ? (
+                            <div className="flex items-center gap-2">
+                              <div className="h-3 w-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              <span className="truncate">Scanning Maps...</span>
+                            </div>
+                          ) : (
+                            <>
+                              <span className="truncate">Find {selectedNiche} Leads Near {targetCity.split(',')[0]} →</span>
+                            </>
+                          )}
+                        </button>
 
                 {/* Database Backup indicator link */}
                 <div className="pt-2 flex justify-between items-center text-[10px] font-mono text-zinc-400">
@@ -480,17 +478,16 @@ Lead Performance Architect, Client Hunter`;
           </div>
 
           {/* Interactive Steps Progress tabs */}
-          <div className="flex flex-col sm:flex-row justify-center items-stretch gap-2.5 max-w-3xl mx-auto mb-12">
+          <div className="flex flex-col sm:flex-row justify-center items-stretch gap-2 max-w-3xl mx-auto mb-10 sm:mb-12">
             {[
               { step: 1, label: "1. Radar Map Probe", desc: "Select niche & scan maps" },
               { step: 2, label: "2. Real-Time Audit", desc: "Toggle diagnostic fixes" },
               { step: 3, label: "3. Automated Outreach", desc: "Preview custom proposal" },
-            ].map((s) => (
-              <button
+            ].map((s) => (                <button
                 key={s.step}
                 type="button"
                 onClick={() => setSimStep(s.step as any)}
-                className={`flex-1 text-left p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
+                className={`flex-1 text-left p-3 sm:p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
                   simStep === s.step
                     ? 'bg-zinc-900 border-blue-500 shadow-lg shadow-blue-500/5'
                     : 'bg-zinc-900/40 border-zinc-900 hover:border-zinc-800 text-zinc-400'
@@ -499,22 +496,22 @@ Lead Performance Architect, Client Hunter`;
                 {simStep === s.step && (
                   <div className="absolute top-0 bottom-0 left-0 w-[3px] bg-blue-500" />
                 )}
-                <p className={`text-xs font-bold tracking-wide uppercase ${simStep === s.step ? 'text-blue-400' : 'text-zinc-500'}`}>
+                <p className={`text-[9px] sm:text-xs font-bold tracking-wide uppercase ${simStep === s.step ? 'text-blue-400' : 'text-zinc-500'}`}>
                   {s.label}
                 </p>
-                <p className="text-[11px] mt-0.5 font-light">{s.desc}</p>
+                <p className="text-[9px] sm:text-[11px] mt-0.5 font-light hidden sm:block">{s.desc}</p>
               </button>
             ))}
           </div>
 
           {/* Sandbox Workspace Stage Grid */}
-          <div className="bg-zinc-900 rounded-3xl border border-zinc-800 p-6 sm:p-8 lg:p-10 shadow-2xl relative">
+          <div className="bg-zinc-900 rounded-3xl border border-zinc-800 p-4 sm:p-8 lg:p-10 shadow-2xl relative">
             <div className="absolute top-4 left-4 flex gap-1.5 select-none">
               <span className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
               <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
               <span className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
             </div>
-            <div className="absolute top-4 right-6 font-mono text-[10px] text-zinc-500 uppercase font-bold tracking-wider">
+            <div className="absolute top-3 right-4 sm:top-4 sm:right-6 font-mono text-[8px] sm:text-[10px] text-zinc-500 uppercase font-bold tracking-wider truncate max-w-[50%]">
               CLIENT_HUNTER_SIMULATOR_V2 // LIVE_PROT
             </div>
 
@@ -590,7 +587,7 @@ Lead Performance Architect, Client Hunter`;
                     </div>
                   </div>
 
-                  <div className="md:col-span-12 lg:col-span-7 bg-[#0b0c0e] border border-zinc-800 rounded-2xl p-5 font-mono text-[11px] text-zinc-400 min-h-[290px] flex flex-col justify-between relative overflow-hidden">
+                  <div className="md:col-span-12 lg:col-span-7 bg-[#0b0c0e] border border-zinc-800 rounded-2xl p-4 sm:p-5 font-mono text-[10px] sm:text-[11px] text-zinc-400 min-h-[250px] sm:min-h-[290px] flex flex-col justify-between relative overflow-hidden">
                     {isSimScan ? (
                       <div className="space-y-3.5 my-auto text-center py-6 animate-pulse">
                         <Activity className="h-10 w-10 text-blue-500 mx-auto animate-bounce" />
@@ -682,8 +679,7 @@ Lead Performance Architect, Client Hunter`;
                     </div>
                   </div>
 
-                  {/* Right subcolumn: Custom Speed dials and checkboxes */}
-                  <div className="md:col-span-12 lg:col-span-7 bg-[#0b0c0e] border border-zinc-800 rounded-2xl p-6 sm:p-8 flex flex-col justify-between">
+                  {/* Right subcolumn: Custom Speed dials and checkboxes */}                    <div className="md:col-span-12 lg:col-span-7 bg-[#0b0c0e] border border-zinc-800 rounded-2xl p-4 sm:p-8 flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between pb-3.5 border-b border-zinc-850 mb-6">
                         <div className="flex items-center gap-2">
@@ -696,13 +692,13 @@ Lead Performance Architect, Client Hunter`;
                       </div>
 
                       {/* Score Dial Simulator */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 mt-1 bg-zinc-900/40 p-4 border border-zinc-850 rounded-2xl">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8 mt-1 bg-zinc-900/40 p-3 sm:p-4 border border-zinc-850 rounded-2xl">
                         
                         <div className="text-center space-y-1">
                           <p className="text-[10px] font-mono text-zinc-400 uppercase font-bold tracking-widest">Presence Score</p>
                           <div className="relative inline-flex items-center justify-center mt-2">
                             {/* Simple dynamic SVG visual circular indicator */}
-                            <svg className="w-20 h-20 transform -rotate-90">
+                            <svg className="w-16 h-16 sm:w-20 sm:h-20 transform -rotate-90">
                               <circle cx="40" cy="40" r="32" className="text-zinc-850" strokeWidth="6" stroke="currentColor" fill="transparent" />
                               <circle cx="40" cy="40" r="32" 
                                 className={`transition-all duration-500 ${
@@ -716,7 +712,7 @@ Lead Performance Architect, Client Hunter`;
                                 fill="transparent" 
                               />
                             </svg>
-                            <span className="absolute text-base font-extrabold font-mono text-white mt-0.5">
+                            <span className="absolute text-sm sm:text-base font-extrabold font-mono text-white mt-0.5">
                               {getSimulatedScore()}%
                             </span>
                           </div>
@@ -740,56 +736,55 @@ Lead Performance Architect, Client Hunter`;
 
                       </div>
 
-                      {/* Interactive Diagnostic Checklist Switches */}
-                      <div className="space-y-3">
+                      {/* Interactive Diagnostic Checklist Switches */}                        <div className="space-y-2.5">
                         <p className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest font-extrabold mb-1 text-left">DRAFT PERFORMANCE FIXES & CODE TOGGLES:</p>
                         
-                        <label className="flex items-center justify-between p-3 rounded-xl border border-zinc-850 hover:bg-zinc-850/40 transition-colors cursor-pointer select-none">
-                          <div className="flex items-center gap-2.5">
+                        <label className="flex items-center justify-between p-2.5 sm:p-3 rounded-xl border border-zinc-850 hover:bg-zinc-850/40 transition-colors cursor-pointer select-none">
+                          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                             <input 
                               type="checkbox" 
                               checked={fixImages}
                               onChange={(e) => setFixImages(e.target.checked)}
-                              className="h-4.5 w-4.5 rounded-lg border-zinc-800 text-blue-600 bg-zinc-900 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                              className="h-4 w-4 sm:h-4.5 sm:w-4.5 rounded-lg border-zinc-800 text-blue-600 bg-zinc-900 focus:ring-1 focus:ring-blue-500 cursor-pointer shrink-0"
                             />
-                            <div className="text-left">
-                              <span className="text-xs font-bold text-zinc-200 block">Compress Modern WebP Images Asset Nodes</span>
-                              <p className="text-[10px] text-zinc-400">Halves page asset footprint over initial JPEG frames (+20% Score)</p>
+                            <div className="text-left min-w-0">
+                              <span className="text-[10px] sm:text-xs font-bold text-zinc-200 block truncate">Compress Modern WebP Images</span>
+                              <p className="text-[9px] sm:text-[10px] text-zinc-400 hidden sm:block">Halves page asset footprint over initial JPEG frames (+20% Score)</p>
                             </div>
                           </div>
-                          <span className="text-[10px] font-mono font-bold text-emerald-400">+20%</span>
+                          <span className="text-[10px] font-mono font-bold text-emerald-400 shrink-0">+20%</span>
                         </label>
 
-                        <label className="flex items-center justify-between p-3 rounded-xl border border-zinc-850 hover:bg-zinc-850/40 transition-colors cursor-pointer select-none">
-                          <div className="flex items-center gap-2.5">
+                        <label className="flex items-center justify-between p-2.5 sm:p-3 rounded-xl border border-zinc-850 hover:bg-zinc-850/40 transition-colors cursor-pointer select-none">
+                          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                             <input 
                               type="checkbox" 
                               checked={fixMobile}
                               onChange={(e) => setFixMobile(e.target.checked)}
-                              className="h-4.5 w-4.5 rounded-lg border-zinc-800 text-blue-600 bg-zinc-900 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                              className="h-4 w-4 sm:h-4.5 sm:w-4.5 rounded-lg border-zinc-800 text-blue-600 bg-zinc-900 focus:ring-1 focus:ring-blue-500 cursor-pointer shrink-0"
                             />
-                            <div className="text-left">
-                              <span className="text-xs font-bold text-zinc-200 block">Inject Mobile Viewport Meta Tags & CSS media Queries</span>
-                              <p className="text-[10px] text-zinc-400">Aligns page grid elements neatly to small screen displays (+25% Score)</p>
+                            <div className="text-left min-w-0">
+                              <span className="text-[10px] sm:text-xs font-bold text-zinc-200 block truncate">Inject Mobile Viewport & CSS</span>
+                              <p className="text-[9px] sm:text-[10px] text-zinc-400 hidden sm:block">Aligns page grid elements neatly to small screen displays (+25% Score)</p>
                             </div>
                           </div>
-                          <span className="text-[10px] font-mono font-bold text-emerald-400">+25%</span>
+                          <span className="text-[10px] font-mono font-bold text-emerald-400 shrink-0">+25%</span>
                         </label>
 
-                        <label className="flex items-center justify-between p-3 rounded-xl border border-zinc-850 hover:bg-zinc-850/40 transition-colors cursor-pointer select-none">
-                          <div className="flex items-center gap-2.5">
+                        <label className="flex items-center justify-between p-2.5 sm:p-3 rounded-xl border border-zinc-850 hover:bg-zinc-850/40 transition-colors cursor-pointer select-none">
+                          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                             <input 
                               type="checkbox" 
                               checked={fixMapPin}
                               onChange={(e) => setFixMapPin(e.target.checked)}
-                              className="h-4.5 w-4.5 rounded-lg border-zinc-800 text-blue-600 bg-zinc-900 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                              className="h-4 w-4 sm:h-4.5 sm:w-4.5 rounded-lg border-zinc-800 text-blue-600 bg-zinc-900 focus:ring-1 focus:ring-blue-500 cursor-pointer shrink-0"
                             />
-                            <div className="text-left">
-                              <span className="text-xs font-bold text-zinc-200 block">Anchor Validated Google Map Coordinates & Embed Listing Pins</span>
-                              <p className="text-[10px] text-zinc-400">Aligns spatial indicators on regional storefront results (+20% Score)</p>
+                            <div className="text-left min-w-0">
+                              <span className="text-[10px] sm:text-xs font-bold text-zinc-200 block truncate">Google Map Coordinates & Pins</span>
+                              <p className="text-[9px] sm:text-[10px] text-zinc-400 hidden sm:block">Aligns spatial indicators on regional storefront results (+20% Score)</p>
                             </div>
                           </div>
-                          <span className="text-[10px] font-mono font-bold text-emerald-400">+20%</span>
+                          <span className="text-[10px] font-mono font-bold text-emerald-400 shrink-0">+20%</span>
                         </label>
                       </div>
 
@@ -874,12 +869,12 @@ Lead Performance Architect, Client Hunter`;
                   </div>
 
                   {/* Right Column: Text block with copy-clipboard trigger */}
-                  <div className="md:col-span-12 lg:col-span-7 bg-[#0b0c0e] border border-zinc-800 rounded-2xl p-6 sm:p-8 flex flex-col justify-between">
+                  <div className="md:col-span-12 lg:col-span-7 bg-[#0b0c0e] border border-zinc-800 rounded-2xl p-4 sm:p-8 flex flex-col justify-between">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between pb-3.5 border-b border-zinc-850">
-                        <div className="flex items-center gap-2">
-                          <Send className="h-4 w-4 text-blue-500" />
-                          <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 font-mono">Simulated Outreach Email Draft</span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Send className="h-4 w-4 text-blue-500 shrink-0" />
+                          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-300 font-mono truncate">Outreach Email Draft</span>
                         </div>
                         <button
                           type="button"
@@ -915,6 +910,47 @@ Lead Performance Architect, Client Hunter`;
         </div>
       </section>
 
+      {/* ⚙️ AI Agent Mesh Section — Live visualization of the multi-provider routing pipeline */}
+      <section className="py-20 bg-zinc-950 text-white border-y border-zinc-800 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:20px_20px]" />
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          
+          <div className="text-center max-w-3xl mx-auto mb-12 space-y-4">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 px-3 py-1 text-xs font-semibold text-blue-400">
+              <Zap className="h-3.5 w-3.5" />
+              Multi-Provider AI Mesh
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold font-display tracking-tight text-white">
+              Agent mesh routing in real-time
+            </h2>
+            <p className="text-sm text-zinc-400 max-w-2xl mx-auto font-light leading-relaxed">
+              Every search, analysis, proposal, and chat is routed through our intelligent LLM Router — 
+              distributing workloads across Groq, OpenRouter, and Google Gemini based on model 
+              capability and availability. Watch the data flow live.
+            </p>
+          </div>
+
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-3xl p-4 sm:p-8 shadow-2xl">
+            <AIPipelineDashboard />
+          </div>
+
+          {/* Provider credits */}
+          <div className="flex flex-wrap justify-center gap-3 mt-6">
+            {[
+              { name: 'Groq Cloud', desc: 'LLaMA 3.1/3.3 · Mixtral', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
+              { name: 'OpenRouter', desc: 'Qwen 2.5 · DeepSeek Coder', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+              { name: 'Google Gemini', desc: 'Gemini 3.5 Flash · Search Grounding', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+            ].map(p => (
+              <div key={p.name} className={`text-[9px] font-mono px-3 py-1.5 rounded-full border ${p.color}`}>
+                <span className="font-bold">{p.name}</span>
+                <span className="opacity-70"> — {p.desc}</span>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      </section>
+
       {/* ⚡ The "Problem vs Fix" Interactive Feature comparison tool */}
       <section className="py-20 bg-zinc-50 border-b border-zinc-200">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
@@ -930,12 +966,12 @@ Lead Performance Architect, Client Hunter`;
           </div>
 
           {/* Toggle Controller Tabs */}
-          <div className="flex justify-center mb-8">
-            <div className="inline-flex bg-zinc-200/80 p-1 border border-zinc-300/40 rounded-xl">
+          <div className="flex justify-center mb-6 sm:mb-8 overflow-x-auto px-2">
+            <div className="inline-flex bg-zinc-200/80 p-1 border border-zinc-300/40 rounded-xl shrink-0">
               <button
                 type="button"
                 onClick={() => setActiveCompareTab('website')}
-                className={`text-xs font-bold py-2 px-4 rounded-lg cursor-pointer transition-all ${
+                className={`text-[10px] sm:text-xs font-bold py-1.5 sm:py-2 px-2.5 sm:px-4 rounded-lg cursor-pointer transition-all whitespace-nowrap ${
                   activeCompareTab === 'website' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-500'
                 }`}
               >
@@ -944,20 +980,20 @@ Lead Performance Architect, Client Hunter`;
               <button
                 type="button"
                 onClick={() => setActiveCompareTab('rating')}
-                className={`text-xs font-bold py-2 px-4 rounded-lg cursor-pointer transition-all ${
+                className={`text-[10px] sm:text-xs font-bold py-1.5 sm:py-2 px-2.5 sm:px-4 rounded-lg cursor-pointer transition-all whitespace-nowrap ${
                   activeCompareTab === 'rating' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-500'
                 }`}
               >
-                SEO & Maps Presence
+                SEO & Maps
               </button>
               <button
                 type="button"
                 onClick={() => setActiveCompareTab('outreach')}
-                className={`text-xs font-bold py-2 px-4 rounded-lg cursor-pointer transition-all ${
+                className={`text-[10px] sm:text-xs font-bold py-1.5 sm:py-2 px-2.5 sm:px-4 rounded-lg cursor-pointer transition-all whitespace-nowrap ${
                   activeCompareTab === 'outreach' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-500'
                 }`}
               >
-                Inbound Outreach
+                Outreach
               </button>
             </div>
           </div>
@@ -966,7 +1002,7 @@ Lead Performance Architect, Client Hunter`;
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
             
             {/* The Before / Current State card */}
-            <div className="bg-white border border-zinc-200 rounded-3xl p-6 sm:p-8 flex flex-col justify-between">
+            <div className="bg-white border border-zinc-200 rounded-2xl sm:rounded-3xl p-4 sm:p-8 flex flex-col justify-between">
               <div>
                 <span className="text-[10px] font-bold font-mono uppercase bg-red-50 border border-red-200 text-red-700 px-2 py-0.5 rounded-full">
                   Before / The Friction
@@ -1022,7 +1058,7 @@ Lead Performance Architect, Client Hunter`;
             </div>
 
             {/* The After / Client Hunter Fix card */}
-            <div className="bg-zinc-950 text-white rounded-3xl p-6 sm:p-8 flex flex-col justify-between border border-zinc-800 shadow-xl">
+            <div className="bg-zinc-950 text-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 flex flex-col justify-between border border-zinc-800 shadow-xl">
               <div>
                 <span className="text-[10px] font-bold font-mono uppercase bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 px-2.5 py-0.5 rounded-full">
                   After / The Client Hunter Fix
@@ -1095,19 +1131,19 @@ Lead Performance Architect, Client Hunter`;
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto">
             
             {/* Tier 1: Free */}
-            <div className="bg-[#FAFAFB] border border-zinc-200 rounded-3xl p-8 flex flex-col justify-between hover:border-zinc-300 transition-all">
+            <div className="bg-[#FAFAFB] border border-zinc-200 rounded-2xl sm:rounded-3xl p-5 sm:p-8 flex flex-col justify-between hover:border-zinc-300 transition-all">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-400 font-mono bg-zinc-200 px-2 py-0.5 rounded-md">
                   Basic
                 </span>
-                <h3 className="text-xl font-bold font-display text-zinc-950 mt-4">Free Starter</h3>
+                <h3 className="text-base sm:text-xl font-bold font-display text-zinc-950 mt-4">Free Starter</h3>
                 <p className="text-zinc-500 text-xs mt-1.5 leading-relaxed">Perfect for freelance web designers starting out locally.</p>
                 
                 <div className="mt-6 flex items-baseline">
-                  <span className="text-3xl font-extrabold font-display text-zinc-950">$0</span>
+                  <span className="text-2xl sm:text-3xl font-extrabold font-display text-zinc-950">$0</span>
                   <span className="text-zinc-400 text-xs ml-1">/ forever</span>
                 </div>
 
@@ -1145,7 +1181,7 @@ Lead Performance Architect, Client Hunter`;
             </div>
 
             {/* Tier 2: Pro */}
-            <div className="bg-white border-2 border-blue-600 rounded-3xl p-8 flex flex-col justify-between relative shadow-xl shadow-blue-600/5 transition-transform hover:scale-[1.01]">
+            <div className="bg-white border-2 border-blue-600 rounded-2xl sm:rounded-3xl p-5 sm:p-8 flex flex-col justify-between relative shadow-xl shadow-blue-600/5 transition-transform hover:scale-[1.01]">
               <div className="absolute top-4 right-4 bg-blue-600 text-white text-[9px] uppercase font-bold tracking-widest font-mono rounded-full px-2.5 py-1">
                 Best Choice
               </div>
@@ -1154,11 +1190,11 @@ Lead Performance Architect, Client Hunter`;
                 <span className="text-[10px] uppercase font-bold tracking-widest text-blue-600 font-mono bg-blue-50 px-2.5 py-1 rounded-md">
                   Professional
                 </span>
-                <h3 className="text-xl font-bold font-display text-zinc-950 mt-4">Pro Hunter</h3>
+                <h3 className="text-base sm:text-xl font-bold font-display text-zinc-950 mt-4">Pro Hunter</h3>
                 <p className="text-zinc-500 text-xs mt-1.5 leading-relaxed">Advanced tools for busy designers and agency builders.</p>
                 
                 <div className="mt-6 flex items-baseline">
-                  <span className="text-3xl font-extrabold font-display text-zinc-950">$29</span>
+                  <span className="text-2xl sm:text-3xl font-extrabold font-display text-zinc-950">$29</span>
                   <span className="text-zinc-400 text-xs ml-1 font-sans">/ month</span>
                 </div>
 
@@ -1198,16 +1234,16 @@ Lead Performance Architect, Client Hunter`;
             </div>
 
             {/* Tier 3: Agency */}
-            <div className="bg-[#FAFAFB] border border-zinc-200 rounded-3xl p-8 flex flex-col justify-between hover:border-zinc-300 transition-all">
+            <div className="bg-[#FAFAFB] border border-zinc-200 rounded-2xl sm:rounded-3xl p-5 sm:p-8 flex flex-col justify-between hover:border-zinc-300 transition-all">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-400 font-mono bg-zinc-200 px-2 py-0.5 rounded-md">
                   Scale
                 </span>
-                <h3 className="text-xl font-bold font-display text-zinc-950 mt-4">Agency Plan</h3>
+                <h3 className="text-base sm:text-xl font-bold font-display text-zinc-950 mt-4">Agency Plan</h3>
                 <p className="text-zinc-500 text-xs mt-1.5 leading-relaxed">Built for teams and busy agencies scaling client acquisition.</p>
                 
                 <div className="mt-6 flex items-baseline">
-                  <span className="text-3xl font-extrabold font-display text-zinc-950">$89</span>
+                  <span className="text-2xl sm:text-3xl font-extrabold font-display text-zinc-950">$89</span>
                   <span className="text-zinc-400 text-xs ml-1">/ month</span>
                 </div>
 

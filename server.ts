@@ -4,6 +4,7 @@ import fs from 'fs';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
+import { AIRouter } from './server/ai-router.js';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 
@@ -1143,6 +1144,71 @@ Return a simple JSON enclosing a "summary" string property (with nice markdown b
   res.json({ ...getFallbackSummary(), isFallback: true });
 });
 
+
+// ─── AI Multi-Provider Chat Endpoint (for Frontend Companion) ───
+
+// Initialize the AI router
+const aiRouter = new AIRouter();
+
+// AI Router status — which providers are configured
+app.get('/api/ai/status', (req, res) => {
+  res.json({
+    providers: aiRouter.getStatus(),
+    hasAnyProvider: aiRouter.hasAnyProvider(),
+    availableModels: aiRouter.getAvailableModels(),
+  });
+});
+
+// AI provider test endpoint — fires a short prompt to verify each configured provider
+app.post('/api/ai/test', async (req, res) => {
+  try {
+    const modelsToTest = ['llama-3.1-8b-instruct', 'gemini-3.5-flash', 'qwen-2.5-72b-instruct'];
+    const results = await Promise.all(modelsToTest.map(modelId => aiRouter.testModel(modelId)));
+    res.json({ results });
+  } catch (error: any) {
+    console.error('[AI Test] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// AI usage stats endpoint — returns cumulative token usage per provider
+app.get('/api/ai/usage', (req, res) => {
+  try {
+    const usage = aiRouter.getUsageStats();
+    res.json({ usage });
+  } catch (error: any) {
+    console.error('[AI Usage] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// AI chat endpoint — routes to the correct provider based on model
+app.post('/api/ai/chat', async (req, res) => {
+  try {
+    const { messages, model, temperature, maxTokens } = req.body;
+
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: 'Messages array is required.' });
+    }
+
+    const modelName = model || 'llama-3.1-8b-instruct';
+
+    const response = await aiRouter.complete({
+      messages,
+      model: modelName,
+      temperature: temperature ?? 0.7,
+      maxTokens: maxTokens ?? 1024,
+    });
+
+    res.json(response);
+  } catch (error: any) {
+    console.error('[AI Chat] Error:', error.message);
+    res.status(503).json({
+      error: error.message,
+      hint: 'Configure one of: GEMINI_API_KEY, GROQ_API_KEY, or OPENROUTER_API_KEY in .env',
+    });
+  }
+});
 
 // Serve React application assets
 async function startServer() {

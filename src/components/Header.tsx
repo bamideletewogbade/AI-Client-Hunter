@@ -8,13 +8,14 @@ import {
   Play, 
   BookOpen,
   CloudLightning,
-  Database
+  Database,
+  BrainCircuit
 } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
 interface HeaderProps {
-  activeTab: 'guide' | 'discovery' | 'crm' | 'analytics';
-  setActiveTab: (tab: 'guide' | 'discovery' | 'crm' | 'analytics') => void;
+  activeTab: 'guide' | 'discovery' | 'crm' | 'analytics' | 'ai-usage';
+  setActiveTab: (tab: 'guide' | 'discovery' | 'crm' | 'analytics' | 'ai-usage') => void;
   crmCount: number;
   onOpenTour?: () => void;
 }
@@ -71,44 +72,47 @@ export default function Header({ activeTab, setActiveTab, crmCount, onOpenTour }
           </div>
         </div>
 
-        {/* Minimalist Tab Navigation */}
-        <nav className="flex items-center gap-1 bg-zinc-100/80 border border-zinc-200/60 rounded-xl p-1 shrink-0">
+        {/* Minimalist Tab Navigation — responsive with abbreviation on mobile */}
+        <nav className="flex items-center gap-0.5 sm:gap-1 bg-zinc-100/80 border border-zinc-200/60 rounded-xl p-0.5 sm:p-1 shrink-0 overflow-x-auto max-w-[60vw] sm:max-w-none">
           <button
             onClick={() => setActiveTab('guide')}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium tracking-tight transition-all duration-150 cursor-pointer ${
+            className={`flex items-center gap-0.5 sm:gap-1.5 rounded-lg px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium tracking-tight transition-all duration-150 cursor-pointer whitespace-nowrap ${
               activeTab === 'guide'
                 ? 'bg-white text-zinc-900 shadow-xs border border-zinc-200/50'
                 : 'text-zinc-500 hover:text-zinc-900 border border-transparent'
             }`}
           >
-            <BookOpen className="h-3.5 w-3.5" />
-            <span className="font-display">Product Guide</span>
+            <BookOpen className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
+            <span className="font-display hidden sm:inline">Product Guide</span>
+            <span className="font-display sm:hidden">Guide</span>
           </button>
           
           <button
             onClick={() => setActiveTab('discovery')}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium tracking-tight transition-all duration-150 cursor-pointer ${
+            className={`flex items-center gap-0.5 sm:gap-1.5 rounded-lg px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium tracking-tight transition-all duration-150 cursor-pointer whitespace-nowrap ${
               activeTab === 'discovery'
                 ? 'bg-white text-blue-600 shadow-xs border border-zinc-200/50'
                 : 'text-zinc-500 hover:text-zinc-900 border border-transparent'
             }`}
           >
-            <Sparkles className="h-3.5 w-3.5 text-blue-500" />
-            <span className="font-display">Search Leads</span>
+            <Sparkles className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-blue-500" />
+            <span className="font-display hidden sm:inline">Search Leads</span>
+            <span className="font-display sm:hidden">Search</span>
           </button>
           
           <button
             onClick={() => setActiveTab('crm')}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium tracking-tight transition-all duration-150 cursor-pointer ${
+            className={`flex items-center gap-0.5 sm:gap-1.5 rounded-lg px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium tracking-tight transition-all duration-150 cursor-pointer whitespace-nowrap ${
               activeTab === 'crm'
                 ? 'bg-white text-zinc-900 shadow-xs border border-zinc-200/50'
                 : 'text-zinc-500 hover:text-zinc-900 border border-transparent'
             }`}
           >
-            <CalendarRange className="h-3.5 w-3.5 text-zinc-700" />
-            <span className="font-display">Pipeline</span>
+            <CalendarRange className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-zinc-700" />
+            <span className="font-display hidden sm:inline">Pipeline</span>
+            <span className="font-display sm:hidden">CRM</span>
             {crmCount > 0 && (
-              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-zinc-900 px-1 text-[8px] font-bold text-white leading-none">
+              <span className="flex h-3.5 sm:h-4 min-w-3.5 sm:min-w-4 items-center justify-center rounded-full bg-zinc-900 px-0.5 sm:px-1 text-[7px] sm:text-[8px] font-bold text-white leading-none">
                 {crmCount}
               </span>
             )}
@@ -116,14 +120,28 @@ export default function Header({ activeTab, setActiveTab, crmCount, onOpenTour }
           
           <button
             onClick={() => setActiveTab('analytics')}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium tracking-tight transition-all duration-150 cursor-pointer ${
+            className={`flex items-center gap-0.5 sm:gap-1.5 rounded-lg px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium tracking-tight transition-all duration-150 cursor-pointer whitespace-nowrap ${
               activeTab === 'analytics'
                 ? 'bg-white text-zinc-900 shadow-xs border border-zinc-200/50'
                 : 'text-zinc-500 hover:text-zinc-900 border border-transparent'
             }`}
           >
-            <BarChart3 className="h-3.5 w-3.5 text-zinc-700" />
-            <span className="font-display">Metrics</span>
+            <BarChart3 className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-zinc-700" />
+            <span className="font-display hidden sm:inline">Metrics</span>
+            <span className="font-display sm:hidden">Stats</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('ai-usage')}
+            className={`flex items-center gap-0.5 sm:gap-1.5 rounded-lg px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium tracking-tight transition-all duration-150 cursor-pointer whitespace-nowrap ${
+              activeTab === 'ai-usage'
+                ? 'bg-white text-indigo-600 shadow-xs border border-zinc-200/50'
+                : 'text-zinc-500 hover:text-zinc-900 border border-transparent'
+            }`}
+          >
+            <BrainCircuit className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-indigo-500" />
+            <span className="font-display hidden sm:inline">AI Usage</span>
+            <span className="font-display sm:hidden">AI</span>
           </button>
         </nav>
 

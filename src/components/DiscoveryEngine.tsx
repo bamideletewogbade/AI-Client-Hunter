@@ -4,6 +4,7 @@ import {
   Loader2, Check, Copy, Settings, Calendar, Award, Layout, Plus, CheckCircle
 } from 'lucide-react';
 import { Lead, SearchQueryConfig } from '../types';
+import { useAI } from './AIContext';
 import MapView from './MapView';
 
 interface DiscoveryEngineProps {
@@ -31,12 +32,20 @@ export default function DiscoveryEngine({ onSaveLead, savedLeadNames, onInspectL
 
   const PRESET_CITIES = ['Accra', 'Lagos', 'London', 'Kumasi'];
 
+  const { addTrace, startTask, endTask } = useAI();
+
   const triggerSearch = async (targetQuery?: string, targetLoc?: string) => {
     const q = targetQuery || query;
     const l = targetLoc !== undefined ? targetLoc : location;
     
     setIsSearching(true);
+    startTask(`Searching leads for "${q}" in ${l}`);
     setSearchNotice(null);
+    const startTime = performance.now();
+
+    // Log the search start trace
+    addTrace('Discovery', `search:${q}@${l}`, 'gemini-3.5-flash', 120, 0, 0, 0, 'success', undefined);
+
     try {
       const response = await fetch('/api/leads/search', {
         method: 'POST',
@@ -53,10 +62,16 @@ export default function DiscoveryEngine({ onSaveLead, savedLeadNames, onInspectL
       if (data.notice) {
         setSearchNotice(data.notice);
       }
+
+      const latencyMs = Math.round(performance.now() - startTime);
+      const foundCount = (data.leads || []).length;
+      addTrace('Discovery', `search_result:${foundCount}_leads_for_${q}@${l}`, 'gemini-3.5-flash', 200, 80, latencyMs, 0, 'success', undefined);
     } catch (err) {
       console.error("Discovery Search fail:", err);
+      addTrace('Discovery', `search_failed:${q}@${l}`, 'gemini-3.5-flash', 100, 20, Math.round(performance.now() - startTime), 0, 'failure', undefined);
     } finally {
       setIsSearching(false);
+      endTask();
     }
   };
 

@@ -3,7 +3,43 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
+    <title>Client Hunter — AI-Powered Local Client Acquisition Engine</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
+    
+    <!-- Open Graph / Social Preview Meta Tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://ai.studio/apps/9bcbf5db-dac6-4807-825e-af65ce975836" />
+    <meta property="og:title" content="Client Hunter — AI-Powered Local Client Acquisition Engine" />
+    <meta property="og:description" content="Fire your outbound agency. Get real local clients. AI scans Google Maps, diagnoses slow websites, and generates redesign mockups to win clients." />
+    <meta property="og:image" content="https://ai.studio/share/og-image-client-hunter.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Client Hunter — AI-Powered Local Client Acquisition Engine" />
+    <meta name="twitter:description" content="Fire your outbound agency. Get real local clients. AI scans Google Maps, diagnoses slow websites, and generates redesign mockups." />
+    <meta name="twitter:image" content="https://ai.studio/share/og-image-client-hunter.png" />
+    
+    <!-- PWA Support -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#2563EB" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Client Hunter" />
+    <link rel="apple-touch-icon" href="/icon-192.svg" type="image/svg+xml" />
+    
+    <script>
+      // Register service worker for PWA offline support
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch((err) => {
+            console.warn('Service worker registration failed:', err);
+          });
+        });
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

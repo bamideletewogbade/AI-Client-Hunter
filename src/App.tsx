@@ -1,18 +1,23 @@
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import DiscoveryEngine from './components/DiscoveryEngine';
-import CrmPipeline from './components/CrmPipeline';
+import CrmPipelineWithFeatures from './components/CrmPipelineWithFeatures';
 import AnalyticsPanel from './components/AnalyticsPanel';
+import AIAnalyticsPage from './components/AIAnalyticsPage';
 import LeadSidePanel from './components/LeadSidePanel';
 import LaunchVideoPlayer from './components/LaunchVideo';
 import ProductLanding from './components/ProductLanding';
 import { useAuth } from './components/AuthContext';
+import { AIProvider } from './components/AIContext';
+import AICompanionModal from './components/AICompanionModal';
+import AIAgentTraceIndicator from './components/AIAgentTraceIndicator';
 import { Lead } from './types';
-import { Sparkles, CalendarRange, Target, AlertCircle } from 'lucide-react';
+import { Sparkles, CalendarRange, Target, AlertCircle, Bot } from 'lucide-react';
 
-export default function App() {
-  const [activeTab, setActiveTab] = useState<'guide' | 'discovery' | 'crm' | 'analytics'>('guide');
+function AppContent() {
+  const [activeTab, setActiveTab] = useState<'guide' | 'discovery' | 'crm' | 'analytics' | 'ai-usage'>('guide');
   const [isTourOpen, setIsTourOpen] = useState(false);
+  const [isAICompanionOpen, setIsAICompanionOpen] = useState(false);
   
   // Custom Firebase Sync
   const { 
@@ -293,7 +298,7 @@ export default function App() {
             )}
 
             {activeTab === 'crm' && (
-              <CrmPipeline
+              <CrmPipelineWithFeatures
                 leads={crmLeads}
                 onUpdateStatus={handleUpdateLeadStatus}
                 onSelectLead={setSelectedLead}
@@ -307,6 +312,10 @@ export default function App() {
               <AnalyticsPanel
                 leads={crmLeads}
               />
+            )}
+
+            {activeTab === 'ai-usage' && (
+              <AIAnalyticsPage />
             )}
           </div>
 
@@ -343,11 +352,40 @@ export default function App() {
         </>
       )}
 
+      {/* AI Companion FAB — always accessible from any tab */}
+      <button
+        onClick={() => setIsAICompanionOpen(true)}
+        className="fixed bottom-4 right-4 z-30 flex items-center justify-center w-12 h-12 
+                   rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 
+                   shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 
+                   transition-all duration-200 cursor-pointer border border-blue-400/30"
+        title="Open AI Companion"
+      >
+        <Bot className="w-5 h-5 text-white" />
+      </button>
+
+      {/* AI Agent Trace Indicator — floating pill bottom-left */}
+      <AIAgentTraceIndicator />
+
+      {/* AI Companion Modal — bottom sheet on mobile, panel on desktop */}
+      <AICompanionModal
+        isOpen={isAICompanionOpen}
+        onClose={() => setIsAICompanionOpen(false)}
+      />
+
       {/* Remotion-Powered Video Launch Tour Overlay */}
       <LaunchVideoPlayer
         isOpen={isTourOpen}
         onClose={() => setIsTourOpen(false)}
       />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AIProvider>
+      <AppContent />
+    </AIProvider>
   );
 }

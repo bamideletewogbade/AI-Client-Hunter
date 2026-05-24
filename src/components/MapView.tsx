@@ -25,7 +25,7 @@ export default function MapView({ leads, onSelectLead, activeLeadId }: MapViewPr
 
   if (!hasValidKey) {
     return (
-      <div className="relative flex h-[350px] w-full flex-col items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 text-center">
+      <div className="relative flex h-[220px] sm:h-[350px] w-full flex-col items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 text-center">
         <div className="absolute inset-0 opacity-15 overflow-hidden rounded-xl">
           {/* A mock matrix grid pattern looking like a map */}
           <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px]"></div>
@@ -69,7 +69,7 @@ export default function MapView({ leads, onSelectLead, activeLeadId }: MapViewPr
   }
 
   return (
-    <div className="relative h-[350px] w-full rounded-xl overflow-hidden border border-zinc-805">
+    <div className="relative h-[220px] sm:h-[350px] w-full rounded-xl overflow-hidden border border-zinc-805">
       <APIProvider apiKey={API_KEY} version="weekly">
         <Map
           defaultCenter={defaultCenter}
