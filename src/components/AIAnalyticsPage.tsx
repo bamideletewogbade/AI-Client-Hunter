@@ -619,7 +619,7 @@ export default function AIAnalyticsPage() {
               </ResponsiveContainer>
             )}
           </div>
-        </div>
+        </motion.div>
 
             {/* Token Distribution (PieChart) — spans 5 cols */}
             <motion.div
