@@ -102,7 +102,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Auth Operations
   const signInWithGoogle = async () => {
     if (!isFirebaseConfigured || !auth) {
-      alert("Firebase setup is needed! Please configure Firebase inside the AI Studio console UI first.");
+      window.dispatchEvent(
+        new CustomEvent('hunter-toast', {
+          detail: {
+            message: "Firebase configuration is not active. Please set up Firebase in the platform panel to enable remote backups.",
+            type: 'error'
+          }
+        })
+      );
       return;
     }
     try {

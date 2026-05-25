@@ -1,23 +1,49 @@
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import DiscoveryEngine from './components/DiscoveryEngine';
-import CrmPipelineWithFeatures from './components/CrmPipelineWithFeatures';
+import CrmPipeline from './components/CrmPipeline';
 import AnalyticsPanel from './components/AnalyticsPanel';
-import AIAnalyticsPage from './components/AIAnalyticsPage';
 import LeadSidePanel from './components/LeadSidePanel';
 import LaunchVideoPlayer from './components/LaunchVideo';
 import ProductLanding from './components/ProductLanding';
+import SalesCopilot from './components/SalesCopilot';
 import { useAuth } from './components/AuthContext';
-import { AIProvider } from './components/AIContext';
-import AICompanionModal from './components/AICompanionModal';
-import AIAgentTraceIndicator from './components/AIAgentTraceIndicator';
 import { Lead } from './types';
-import { Sparkles, CalendarRange, Target, AlertCircle, Bot } from 'lucide-react';
+import { Sparkles, CalendarRange, Target, AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
-function AppContent() {
-  const [activeTab, setActiveTab] = useState<'guide' | 'discovery' | 'crm' | 'analytics' | 'ai-usage'>('guide');
+export default function App() {
+  const [activeTab, setActiveTab] = useState<'guide' | 'discovery' | 'crm' | 'analytics'>('guide');
   const [isTourOpen, setIsTourOpen] = useState(false);
-  const [isAICompanionOpen, setIsAICompanionOpen] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error'; id: number } | null>(null);
+
+  // Set up real-time toast notifications listener
+  useEffect(() => {
+    const handleToast = (e: Event) => {
+      const customEvent = e as CustomEvent<{ message: string; type: 'success' | 'info' | 'error' }>;
+      if (customEvent.detail) {
+        setToast({
+          message: customEvent.detail.message,
+          type: customEvent.detail.type || 'info',
+          id: Date.now()
+        });
+      }
+    };
+    window.addEventListener('hunter-toast', handleToast);
+    return () => window.removeEventListener('hunter-toast', handleToast);
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const triggerToast = (message: string, type: 'success' | 'info' | 'error' = 'info') => {
+    setToast({ message, type, id: Date.now() });
+  };
   
   // Custom Firebase Sync
   const { 
@@ -170,9 +196,10 @@ function AppContent() {
       
       const addedLead = await response.json();
       setLocalLeads((prev) => [...prev, addedLead]);
+      triggerToast(`${newLead.name} successfully saved to client pipeline.`, 'success');
       return true;
     } catch (err: any) {
-      alert(err.message || "An error occurred while saving the lead.");
+      triggerToast(err.message || "An error occurred while saving the lead.", 'error');
       return false;
     }
   };
@@ -270,7 +297,7 @@ function AppContent() {
           onStartApp={() => setActiveTab('discovery')}
           isFirebaseConfigured={isConfigured}
           onConnectDatabase={() => {
-            alert("To pair your Cloud Database, ensure you configure Firebase terms in the platform panel! Once live, client data will seamlessly auto-synchronize to Firestore.");
+            triggerToast("To pair your Cloud Database, ensure you configure Firebase terms in the platform panel! Once live, client data will seamlessly auto-synchronize to Firestore.", 'info');
           }}
         />
       ) : (
@@ -294,11 +321,12 @@ function AppContent() {
                 savedLeadNames={savedLeadNames}
                 onInspectLead={setSelectedLead}
                 crmLeads={crmLeads}
+                activeLeadId={selectedLead?.id}
               />
             )}
 
             {activeTab === 'crm' && (
-              <CrmPipelineWithFeatures
+              <CrmPipeline
                 leads={crmLeads}
                 onUpdateStatus={handleUpdateLeadStatus}
                 onSelectLead={setSelectedLead}
@@ -312,10 +340,6 @@ function AppContent() {
               <AnalyticsPanel
                 leads={crmLeads}
               />
-            )}
-
-            {activeTab === 'ai-usage' && (
-              <AIAnalyticsPage />
             )}
           </div>
 
@@ -352,26 +376,44 @@ function AppContent() {
         </>
       )}
 
-      {/* AI Companion FAB — always accessible from any tab */}
-      <button
-        onClick={() => setIsAICompanionOpen(true)}
-        className="fixed bottom-4 right-4 z-30 flex items-center justify-center w-12 h-12 
-                   rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 
-                   shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 
-                   transition-all duration-200 cursor-pointer border border-blue-400/30"
-        title="Open AI Companion"
-      >
-        <Bot className="w-5 h-5 text-white" />
-      </button>
+      {/* Absolute Floating Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key={toast.id}
+            initial={{ opacity: 0, y: -50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            className="fixed top-6 right-6 z-50 max-w-sm w-full p-4 rounded-xl border shadow-2xl bg-[#0c0c0e] border-zinc-800 flex items-start gap-3 text-white"
+          >
+            <div className="shrink-0 mt-0.5">
+              {toast.type === 'success' ? (
+                <CheckCircle2 className="h-4.5 w-4.5 text-emerald-400" />
+              ) : toast.type === 'error' ? (
+                <AlertCircle className="h-4.5 w-4.5 text-rose-400" />
+              ) : (
+                <Info className="h-4.5 w-4.5 text-blue-400" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest leading-none">
+                {toast.type === 'success' ? 'SYSTEM SUCCESS' : toast.type === 'error' ? 'CRITICAL ERROR' : 'SYSTEM NOTICE'}
+              </p>
+              <p className="text-[11px] text-zinc-200 mt-1.5 leading-normal">{toast.message}</p>
+            </div>
+            <button
+              onClick={() => setToast(null)}
+              className="p-1 rounded bg-[#18181B] border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all cursor-pointer shrink-0"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* AI Agent Trace Indicator — floating pill bottom-left */}
-      <AIAgentTraceIndicator />
-
-      {/* AI Companion Modal — bottom sheet on mobile, panel on desktop */}
-      <AICompanionModal
-        isOpen={isAICompanionOpen}
-        onClose={() => setIsAICompanionOpen(false)}
-      />
+      {/* Interactive Floating AI Sales Copilot Agent widget */}
+      <SalesCopilot />
 
       {/* Remotion-Powered Video Launch Tour Overlay */}
       <LaunchVideoPlayer
@@ -379,13 +421,5 @@ function AppContent() {
         onClose={() => setIsTourOpen(false)}
       />
     </div>
-  );
-}
-
-export default function App() {
-  return (
-    <AIProvider>
-      <AppContent />
-    </AIProvider>
   );
 }

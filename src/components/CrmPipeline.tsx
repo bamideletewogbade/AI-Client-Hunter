@@ -2,10 +2,11 @@ import { Lead } from '../types';
 import {
   Building2, ArrowRight, ArrowLeft, RefreshCw, MessageSquare, Briefcase, PlusCircle, Plus,
   TrendingUp, Trash2, CalendarRange, Check, AlertCircle, FileText, Globe, ArrowUpDown, X, Download, Sparkles,
-  Filter, ChevronDown, Upload, Pencil
+  Filter, ChevronDown, Upload, Pencil, Search
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import ConfirmationDialog from './ConfirmationDialog';
 
 // Robust split-based CSV parser supporting double quotes and comma delimiters
 function parseCSV(text: string): string[][] {
@@ -136,6 +137,7 @@ export default function CrmPipeline({ leads, onUpdateStatus, onSelectLead, onDel
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [visibleColumns, setVisibleColumns] = useState<Lead['status'][]>(['new', 'contacted', 'replied', 'interested', 'closed']);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Quick-edit lead name state
   const [editingLeadId, setEditingLeadId] = useState<string | null>(null);
@@ -219,6 +221,53 @@ export default function CrmPipeline({ leads, onUpdateStatus, onSelectLead, onDel
   // States for reverting imports
   const [isRevertingBatch, setIsRevertingBatch] = useState(false);
   const [revertProgress, setRevertProgress] = useState(0);
+
+  // Unified confirmation dialog states for pristine design without alert boxes
+  const [deleteModalState, setDeleteModalState] = useState<{
+    isOpen: boolean;
+    leadId: string | null;
+    leadName: string;
+    isBatchRevert: boolean;
+    batchLeadsList?: Lead[];
+  }>({
+    isOpen: false,
+    leadId: null,
+    leadName: '',
+    isBatchRevert: false,
+  });
+
+  const triggerDeleteConfirm = (id: string, name: string) => {
+    setDeleteModalState({
+      isOpen: true,
+      leadId: id,
+      leadName: name,
+      isBatchRevert: false,
+    });
+  };
+
+  const executeConfirmedDelete = async () => {
+    if (deleteModalState.isBatchRevert && deleteModalState.batchLeadsList) {
+      const list = deleteModalState.batchLeadsList;
+      setDeleteModalState(prev => ({ ...prev, isOpen: false }));
+      setIsRevertingBatch(true);
+      setRevertProgress(0);
+      try {
+        for (let i = 0; i < list.length; i++) {
+          const lead = list[i];
+          await onDeleteLead(lead.id);
+          setRevertProgress(Math.round(((i + 1) / list.length) * 100));
+          await new Promise(resolve => setTimeout(resolve, 20));
+        }
+      } catch (err) {
+        console.error("Failed to fully revert import:", err);
+      } finally {
+        setIsRevertingBatch(false);
+      }
+    } else if (deleteModalState.leadId) {
+      onDeleteLead(deleteModalState.leadId);
+      setDeleteModalState({ isOpen: false, leadId: null, leadName: '', isBatchRevert: false });
+    }
+  };
 
   const getValueFromRow = (row: string[], fieldMapping: string) => {
     if (!fieldMapping) return null;
@@ -459,36 +508,18 @@ export default function CrmPipeline({ leads, onUpdateStatus, onSelectLead, onDel
 
   const latestBatch = getLatestImportBatch();
 
-  const handleRevertLastImport = async () => {
+  const handleRevertLastImport = () => {
     if (!latestBatch) return;
     const batchTime = new Date(latestBatch.timestamp).toLocaleString();
     const count = latestBatch.leads.length;
     
-    const confirmMessage = `⚠️ REVERT CSV IMPORT ⚠️\n\nAre you sure you want to permanently delete all ${count} prospects imported on ${batchTime}?\n\nThis will remove them from the pipeline completely and cannot be undone.`;
-    
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
-
-    setIsRevertingBatch(true);
-    setRevertProgress(0);
-    
-    let deletedCount = 0;
-    try {
-      for (let i = 0; i < latestBatch.leads.length; i++) {
-        const lead = latestBatch.leads[i];
-        await onDeleteLead(lead.id);
-        deletedCount++;
-        setRevertProgress(Math.round(((i + 1) / latestBatch.leads.length) * 100));
-        // Pause slightly to let states sync gracefully
-        await new Promise(resolve => setTimeout(resolve, 20));
-      }
-    } catch (err) {
-      console.error("Failed to fully revert import:", err);
-    } finally {
-      setIsRevertingBatch(false);
-      setRevertProgress(0);
-    }
+    setDeleteModalState({
+      isOpen: true,
+      leadId: null,
+      leadName: `Last CSV Import batch (${count} leads from ${batchTime})`,
+      isBatchRevert: true,
+      batchLeadsList: latestBatch.leads
+    });
   };
 
   // Helper helper to calculate revenue potential
@@ -501,8 +532,19 @@ export default function CrmPipeline({ leads, onUpdateStatus, onSelectLead, onDel
     }
   };
 
+  // Filter leads based on text-based search input (matches name, category, or tags)
+  const filteredLeads = leads.filter(lead => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+    const matchesName = (lead.name || '').toLowerCase().includes(q);
+    const matchesCategory = (lead.category || '').toLowerCase().includes(q);
+    const matchesTags = lead.tags?.some(t => t.toLowerCase().includes(q)) || false;
+    return matchesName || matchesCategory || matchesTags;
+  });
+
   // Perform sorting across our leads database
-  const sortedLeads = [...leads].sort((a, b) => {
+  const sortedLeads = [...filteredLeads].sort((a, b) => {
     let comp = 0;
     if (sortBy === 'date_added') {
       const timeA = new Date(a.createdAt || 0).getTime();
@@ -766,6 +808,43 @@ export default function CrmPipeline({ leads, onUpdateStatus, onSelectLead, onDel
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Dynamic Text-based Prospect Search Bar */}
+      <div id="crm-search-bar" className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white border border-zinc-200/85 p-3 rounded-xl shadow-sm">
+        <div className="relative flex-1">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <Search className="h-4 w-4 text-zinc-400" />
+          </div>
+          <input
+            id="crm-sidebar-lead-search"
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search prospects by name, industry category, or tags..."
+            className="w-full text-xs font-medium text-zinc-800 bg-zinc-50/50 hover:bg-zinc-50 focus:bg-white border border-zinc-200 focus:border-blue-500 rounded-xl pl-8.5 pr-10 py-2.5 transition-all outline-none focus:ring-1 focus:ring-blue-500/10 placeholder-zinc-400"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 group cursor-pointer"
+              title="Clear search"
+            >
+              <span className="p-1 hover:bg-zinc-100 rounded-lg text-zinc-400 hover:text-rose-600 transition-colors">
+                <X className="h-3 w-3" />
+              </span>
+            </button>
+          )}
+        </div>
+        
+        {searchQuery && (
+          <div className="flex items-center justify-between sm:justify-end gap-2.5 px-1 sm:px-0 animate-fade-in">
+            <span className="text-[10.5px] font-sans font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2.5 py-1.5 rounded-lg whitespace-nowrap">
+              Found {filteredLeads.length} of {leads.length} matches
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* Short Pipeline Summary stats row / Sort Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-zinc-200/80 px-4 py-3 rounded-xl shadow-sm">
@@ -1299,9 +1378,7 @@ export default function CrmPipeline({ leads, onUpdateStatus, onSelectLead, onDel
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    if (confirm(`Remove "${item.name}" from CRM pipeline?`)) {
-                                      onDeleteLead(item.id);
-                                    }
+                                    triggerDeleteConfirm(item.id, item.name);
                                   }}
                                   className="p-1 rounded hover:bg-rose-50 text-zinc-400 hover:text-rose-600 transition-colors cursor-pointer border border-transparent"
                                 >
@@ -2202,6 +2279,21 @@ export default function CrmPipeline({ leads, onUpdateStatus, onSelectLead, onDel
           </div>
         )}
       </AnimatePresence>
+
+      <ConfirmationDialog
+        isOpen={deleteModalState.isOpen}
+        title={deleteModalState.isBatchRevert ? "Revert CSV Import" : "Delete Lead"}
+        message={
+          deleteModalState.isBatchRevert
+            ? `Are you sure you want to permanently delete all leads associated with ${deleteModalState.leadName}? This will clear them entirely from your CRM system.`
+            : `Are you sure you want to permanently delete "${deleteModalState.leadName}"? This action will remove their details and active status from the CRM pipeline setup.`
+        }
+        confirmText={deleteModalState.isBatchRevert ? "Revert Import" : "Delete Lead"}
+        cancelText="Cancel"
+        isDestructive={true}
+        onConfirm={executeConfirmedDelete}
+        onCancel={() => setDeleteModalState({ isOpen: false, leadId: null, leadName: '', isBatchRevert: false })}
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Lead, BusinessAnalysis, WebDesignProposal, OutreachPitch } from '../types';
 import { useAuth } from './AuthContext';
+import ConfirmationDialog from './ConfirmationDialog';
 
 interface LeadSidePanelProps {
   lead: Lead | null;
@@ -25,6 +26,7 @@ export default function LeadSidePanel({ lead, onClose, onUpdateLead, onDeleteLea
   const [isPitching, setIsPitching] = useState(false);
   const [copiedText, setCopiedText] = useState<{ [key: string]: boolean }>({});
   const [panelError, setPanelError] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Reset tabs when the inspected lead changes
   useEffect(() => {
@@ -402,7 +404,7 @@ export default function LeadSidePanel({ lead, onClose, onUpdateLead, onDeleteLea
                       </ul>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                       <div>
                         <h5 className="text-[9px] font-bold text-zinc-450 uppercase tracking-widest mb-1.5 flex items-center gap-1">
                           <Check className="h-3.5 w-3.5 text-emerald-400" /> Key Systems Needed
@@ -491,7 +493,7 @@ export default function LeadSidePanel({ lead, onClose, onUpdateLead, onDeleteLea
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       <div className="p-3 bg-[#0C0C0E]/50 border border-zinc-800 rounded-lg">
                         <span className="text-[9px] text-zinc-500 uppercase font-bold tracking-wider">Need Reason</span>
                         <p className="text-[10.5px] text-zinc-350 font-medium mt-1 leading-snug">{currentProposal.needDetectedReason}</p>
@@ -663,12 +665,8 @@ export default function LeadSidePanel({ lead, onClose, onUpdateLead, onDeleteLea
       <div className="border-t border-zinc-800 bg-[#09090B]/50 px-5 py-3.5 flex items-center justify-between">
         {onDeleteLead ? (
           <button
-            onClick={() => {
-              if (confirm("Remove this lead from CRM database?")) {
-                onDeleteLead(lead.id);
-              }
-            }}
-            className="px-3.5 py-1.5 rounded-lg border border-red-950 text-red-400 hover:bg-red-950/20 text-xs font-bold cursor-pointer"
+            onClick={() => setIsDeleteModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-lg border border-red-950 text-red-400 hover:bg-rose-950/20 text-xs font-bold cursor-pointer"
           >
             DELETE LEAD
           </button>
@@ -680,6 +678,22 @@ export default function LeadSidePanel({ lead, onClose, onUpdateLead, onDeleteLea
           FINISHED AUDITING
         </button>
       </div>
+
+      <ConfirmationDialog
+        isOpen={isDeleteModalOpen}
+        title="Delete Lead"
+        message={`Are you sure you want to permanently delete "${lead.name}"? This action will remove their details and active status from the CRM pipeline setup.`}
+        confirmText="Delete Lead"
+        cancelText="Cancel"
+        isDestructive={true}
+        onConfirm={() => {
+          if (onDeleteLead) {
+            onDeleteLead(lead.id);
+          }
+          setIsDeleteModalOpen(false);
+        }}
+        onCancel={() => setIsDeleteModalOpen(false)}
+      />
     </div>
   );
 }

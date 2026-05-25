@@ -4,7 +4,6 @@ import fs from 'fs';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
-import { AIRouter } from './server/ai-router.js';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 
@@ -289,9 +288,10 @@ function getRealisticFallbacks(query: string): Lead[] {
   if (searchQuery.includes("dentist") || searchQuery.includes("clinic") || searchQuery.includes("hospital")) industry = "Medical";
   else if (searchQuery.includes("restaurant") || searchQuery.includes("food") || searchQuery.includes("cafe")) industry = "F&B";
   else if (searchQuery.includes("logistics") || searchQuery.includes("freight") || searchQuery.includes("delivery")) industry = "Logistics";
-  else if (searchQuery.includes("school") || searchQuery.includes("academy") || searchQuery.includes("tutor")) industry = "Education";
+  else if (searchQuery.includes("school") || searchQuery.includes("academy") || searchQuery.includes("tutor") || searchQuery.includes("education")) industry = "Education";
+  else if (searchQuery.includes("hotel") || searchQuery.includes("resort") || searchQuery.includes("inn") || searchQuery.includes("lodg")) industry = "Hospitality";
+  else if (searchQuery.includes("gym") || searchQuery.includes("fitness") || searchQuery.includes("workout") || searchQuery.includes("training")) industry = "Fitness";
   else if (searchQuery.includes("construction") || searchQuery.includes("builder") || searchQuery.includes("architect")) industry = "Construction";
-  else if (searchQuery.includes("hotel") || searchQuery.includes("resort") || searchQuery.includes("inn")) industry = "Hospitality";
 
   // Coordinates anchor based on guessed city
   let coords = { lat: 6.5244, lng: 3.3792 }; // Lagos
@@ -349,6 +349,42 @@ function getRealisticFallbacks(query: string): Lead[] {
     );
     ratings.push(3.3, 4.1, 3.5, 4.0);
     reviewsCounts.push(62, 14, 8, 22);
+  } else if (industry === "Hospitality") {
+    names.push(`Royal Meridian Hotel ${city}`, `Serene Horizon Resorts`, `Oasis View Inn & Suites`, `The Grand Heritage Lodge`);
+    categories.push("Luxury Hotel", "Boutique Resort", "Executive Guest House", "Eco-Lodge & Spa");
+    webStates.push(null, `http://serenehorizon${city.toLowerCase()}.com`, null, null);
+    tags.push(
+      ["No Website", "Manual Reservations", "High Package Value", "Lacks Room Booking"],
+      ["Old WordPress Theme", "Slow Load Time", "Broken Slider Grid"],
+      ["No Website", "Relying on Booking.com", "Commission Loss", "Hot Target"],
+      ["No Website", "Social Inquiries Onlies", "Scenic Spot"]
+    );
+    ratings.push(4.5, 4.2, 3.8, 4.7);
+    reviewsCounts.push(142, 64, 19, 83);
+  } else if (industry === "Education") {
+    names.push(`${city} Modern Academy`, `Pristine Kids Montessori`, `Elite International School`, `Summit Vocational Institute`);
+    categories.push("Private High School", "Montessori Preschool", "Secondary College", "Technical Skills Center");
+    webStates.push(null, `http://pristinekids${city.toLowerCase()}.sch.ng`, null, null);
+    tags.push(
+      ["No Website", "Phone Inquiries Only", "Manual Admissions", "High Value"],
+      ["Legacy School Site", "Unfinished Syllabus Page", "Non-Responsive Layout"],
+      ["No Website", "Facebook Brochure Page", "Lacks Interactive Portal"],
+      ["No Website", "Great Parent Reviews", "Syllabus Missing"]
+    );
+    ratings.push(4.4, 4.7, 4.1, 4.3);
+    reviewsCounts.push(35, 29, 12, 18);
+  } else if (industry === "Fitness") {
+    names.push(`Ironclad Gym & Fitness ${city}`, `Pinnacle Core Pilates`, `Vanguard Athletic Club`, `The Arena Combat & Boxing`);
+    categories.push("Commercial Health Club", "Pilates & Yoga Studio", "Premium Wellness Hub", "Martial Arts Gym");
+    webStates.push(null, `http://pinnaclepilates${city.toLowerCase()}.com`, null, null);
+    tags.push(
+      ["No Website", "Instagram Member Intake", "Manual Subscription Setup", "Hot Lead"],
+      ["Broken Page", "Lacks Class Schedulers", "Missing Price Structures"],
+      ["No Website", "Offline Member Registration", "Great Foot Traffic"],
+      ["No Website", "In-Gym Manual Forms", "Niche Community Focus"]
+    );
+    ratings.push(4.8, 4.5, 4.3, 4.9);
+    reviewsCounts.push(78, 22, 14, 53);
   } else {
     // Default generic templates
     names.push(`${city} Hub Enterprise`, `${city} Academy of Talents`, `Solid Foundation Builders`, `Prestige Auto Repair`);
@@ -1145,70 +1181,87 @@ Return a simple JSON enclosing a "summary" string property (with nice markdown b
 });
 
 
-// ─── AI Multi-Provider Chat Endpoint (for Frontend Companion) ───
-
-// Initialize the AI router
-const aiRouter = new AIRouter();
-
-// AI Router status — which providers are configured
-app.get('/api/ai/status', (req, res) => {
-  res.json({
-    providers: aiRouter.getStatus(),
-    hasAnyProvider: aiRouter.hasAnyProvider(),
-    availableModels: aiRouter.getAvailableModels(),
-  });
-});
-
-// AI provider test endpoint — fires a short prompt to verify each configured provider
-app.post('/api/ai/test', async (req, res) => {
-  try {
-    const modelsToTest = ['llama-3.1-8b-instruct', 'gemini-3.5-flash', 'qwen-2.5-72b-instruct'];
-    const results = await Promise.all(modelsToTest.map(modelId => aiRouter.testModel(modelId)));
-    res.json({ results });
-  } catch (error: any) {
-    console.error('[AI Test] Error:', error.message);
-    res.status(500).json({ error: error.message });
+// AI Copilot Interactive Chat Endpoint
+app.post('/api/copilot/chat', async (req, res) => {
+  const { messages } = req.body;
+  if (!messages || !Array.isArray(messages)) {
+    return res.status(400).json({ error: "Chat messages array is required." });
   }
-});
 
-// AI usage stats endpoint — returns cumulative token usage per provider
-app.get('/api/ai/usage', (req, res) => {
-  try {
-    const usage = aiRouter.getUsageStats();
-    res.json({ usage });
-  } catch (error: any) {
-    console.error('[AI Usage] Error:', error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
+  const client = getGeminiClient();
 
-// AI chat endpoint — routes to the correct provider based on model
-app.post('/api/ai/chat', async (req, res) => {
-  try {
-    const { messages, model, temperature, maxTokens } = req.body;
-
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: 'Messages array is required.' });
+  const getFallbackReply = () => {
+    const lastMsg = messages[messages.length - 1]?.content || "";
+    const msgLower = lastMsg.toLowerCase();
+    let reply = "Yo, I'm Bishop! Ask me anything about how this five-agent mesh coordinates, custom USSD platforms, West African telecom APIs, or how the site workspace memory keeps your B2B leads safe.";
+    
+    if (msgLower.includes("mesh") || msgLower.includes("agent") || msgLower.includes("coordinate") || msgLower.includes("five") || msgLower.includes("co-ordinate")) {
+      reply = `### 🤖 Bishop's Five-Agent Mesh Coordination\n\nI architected this Hub to self-coordinate using five specialized operation nodes:\n\n1. **Discovery Agent**: Crawls real Google business indexes in local cities (Accra, Lagos, London, Kumasi) to identify raw web presence gaps and score "Maturity."\n2. **CRM Pipeline**: A visual Kanban board facilitating workflow transitions (Contacted, Pitch Sent, Rebuttals, Won) and projecting portfolio deal values.\n3. **Video Launch Creator**: Dynamically loads customized 20-second pitches to display exactly what is missing on mobile and desktop.\n4. **Sales Copilot**: Bishop (me!) supplying real-time strategy tips and integration answers.\n5. **Metrics Dashboard**: Evaluating live statistics, average digital scores, and contract closing rate telemetry securely.`;
+    } else if (msgLower.includes("ussd") || msgLower.includes("offline") || msgLower.includes("shortcode") || msgLower.includes("talking") || msgLower.includes("hubtel") || msgLower.includes("arkesel")) {
+      reply = `### 📞 Offline USSD Platform Integrations\n\nFor West African B2B businesses, offline reachability is critical for capturing users without internet access. Here is the implementation flow:\n\n1. **Aggregators**: Register with **Africa's Talking**, **Hubtel**, or **Arkesel**.\n2. **Shared Short Codes**: Map a unique dial path (e.g. \`*714#\`) and configure your callback URL.\n3. **Session Handlers**: When a user dials the shortcode, the aggregator sends an HTTP POST request to our webhook. We reply with plain-text menu choices (e.g., \`CON Choose 1 to Book a Private Dental Visit\`).\n4. **Lead Syncing**: Successful bookings push straight into our client database.`;
+    } else if (msgLower.includes("telecom") || msgLower.includes("momo") || msgLower.includes("money") || msgLower.includes("api") || msgLower.includes("payment")) {
+      reply = `### 💳 West African Telecom & Mobile Money APIs\n\nIntegrating payment systems directly into your clients' sites is a perfect way to upsell them. Here is how I hook them up:\n\n1. **MTN MoMo API**: Integrate with MTN's sandbox or production collections gateway using their HTTP headers (including Client IDs and API Keys).\n2. **Telecel Cash & Orange Money**: Use a payment aggregator (e.g., **Paystack**, **Flutterwave**, or **Hubtel**) to manage unified card and MoMo transactions with a single unified SDK.\n3. **Webhooks Setup**: Configure secure callbacks to automatically update custom CRM leads to "Closed Won" status immediately on successful payment processing.`;
+    } else if (msgLower.includes("memory") || msgLower.includes("persistence") || msgLower.includes("save") || msgLower.includes("lose")) {
+      reply = `### 💾 Hub Site Memory & Local State\n\n1. **Local Storage Engine**: Pipeline leads you capture, custom presets you configure, and manual column transitions are auto-persisted directly in the local browser database.\n2. **State Synchronization**: Re-verifying column states and re-accessing cached presets remains automatic even if your server restarts, meaning zero loss of simulated acquisition runs.`;
     }
+    return { content: reply };
+  };
 
-    const modelName = model || 'llama-3.1-8b-instruct';
-
-    const response = await aiRouter.complete({
-      messages,
-      model: modelName,
-      temperature: temperature ?? 0.7,
-      maxTokens: maxTokens ?? 1024,
-    });
-
-    res.json(response);
-  } catch (error: any) {
-    console.error('[AI Chat] Error:', error.message);
-    res.status(503).json({
-      error: error.message,
-      hint: 'Configure one of: GEMINI_API_KEY, GROQ_API_KEY, or OPENROUTER_API_KEY in .env',
-    });
+  if (!client) {
+    return res.json({ ...getFallbackReply(), isFallback: true });
   }
+
+  try {
+    const systemInstruction = `You are "Bishop", the expert developer, system architect, and assistant built into the Client Hunter platform.
+You reside in your customized Workspace. You are knowledgeable, laid back, friendly, creative, and professional. Use phrases like "Yo,", but remain highly analytical about system configurations, telecom software, and lead acquisition pipelines.
+
+Your knowledge base includes:
+1. "Five-Agent Mesh" Coordination inside this "Client Hunter Hub":
+   - **Discovery Agent**: Google Search integration matching queries (e.g. dentist, gym, clinic) across hubs like Accra, Lagos, London, or Kumasi. Scores digital "Maturity" out of 100 pointing out offline or web-absent niches.
+   - **CRM Agent**: Visual Kanban column transitioning of potential leads (Contacted, Pitch Sent, Rebuttals, Won), projection tracking, and bulk CSV ingestion.
+   - **Launch Video Creator**: Instant tailored interactive pitch video previews based on the B2B client's maturity deficiency.
+   - **Sales Copilot (You)**: Bishop serving voice-guided pitches, telecom tools, and objections support.
+   - **Metrics Tracker**: Live telemetry reporting won margins, SEO coverage, and CRM volume.
+2. USSD Platforms:
+   - Deep expertise in West African offline integrations like Africa's Talking, Hubtel, or Arkesel.
+   - Explaining how to build a basic menu structure (e.g., dial code like *714*10#) to allow local customers without internet access or smartphones to book private clinical visits, request dental triage, or book hotel space.
+3. West African Telecom APIs:
+   - MTN Mobile Money (MoMo), Telecel Cash (formerly Vodafone Cash), AirtelTigo Cash, and Orange Money integrations.
+   - Using payments API webhooks to auto-validate transactions on client website platforms.
+4. Local Site Memory:
+   - How the site state stays intact using secure local key-value state persistence engines inside the user's local workspace.
+
+Rules for response:
+- Introduce yourself clearly as "Bishop" if the user greets you or asks who you are.
+- Answer in structured, highly legible markdown with standard bullet lines.
+- Keep answers insightful, warm, objective, and highly action-oriented.
+- Keep responses within 2-3 concise paragraphs so they read out smoothly via vocal synthesizers.`;
+
+    const chatHistory = messages.map((m: any) => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: m.content }]
+    }));
+
+    // Generate output utilizing gemini-3.5-flash
+    const response = await client.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: chatHistory,
+      config: {
+        systemInstruction,
+        temperature: 0.7
+      }
+    });
+
+    if (response.text) {
+      return res.json({ content: response.text.trim(), isFallback: false });
+    }
+  } catch (err) {
+    console.warn("Copilot chat Gemini call failed, falling back gracefully.", err);
+  }
+
+  res.json({ ...getFallbackReply(), isFallback: true });
 });
+
 
 // Serve React application assets
 async function startServer() {
