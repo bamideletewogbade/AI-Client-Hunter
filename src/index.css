@@ -6,44 +6,79 @@
   --font-display: "Space Grotesk", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
   
-  --color-brand-primary: #1E293B;
-  --color-brand-accent: #2563EB;
+  --color-brand-primary: #0C0C0E;
+  --color-brand-accent: #FE8C00;
+  --color-brand-accent-hover: #E07B00;
+  --color-brand-card: #121215;
+  --color-brand-card-light: #1A1A22;
+  --color-brand-bg-dark: #070708;
 }
 
 body {
-  background-color: #FAFAFB;
-  color: #18181B;
+  background-color: var(--color-brand-primary);
+  color: #F4F4F5;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom premium scrollbar */
+/* Custom premium dark scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #FAFAFB;
+  background: var(--color-brand-bg-dark);
 }
 ::-webkit-scrollbar-thumb {
-  background: #E4E4E7;
+  background: #2E2E38;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #D4D4D8;
+  background: #3F3F4E;
 }
 
-/* Layout utilities */
-.designer-card {
-  background: #FFFFFF;
-  border: 1px solid #E4E4E7;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+/* Glassmorphism styling tools */
+.glass-panel {
+  background: rgba(18, 18, 22, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+}
+
+.glass-panel-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-panel-hover:hover {
+  border-color: rgba(254, 140, 0, 0.3);
+  background: rgba(18, 18, 22, 0.85);
+  transform: translateY(-2px);
 }
 
 .heading-display {
   font-family: var(--font-display);
   font-weight: 600;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.027em;
+}
+
+.glow-accent {
+  box-shadow: 0 0 20px rgba(254, 140, 0, 0.15);
+}
+
+.glow-green {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+}
+
+.glow-red {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
+}
+
+/* Scrollable container styling utility */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }

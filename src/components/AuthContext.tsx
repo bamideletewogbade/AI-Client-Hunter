@@ -3,110 +3,92 @@ import {
   User, 
   onAuthStateChanged, 
   signInWithPopup, 
-  signOut 
+  signOut,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile
 } from 'firebase/auth';
 import { 
-  collection, 
-  onSnapshot, 
-  doc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query 
-} from 'firebase/firestore';
-import { 
   auth, 
-  db, 
-  googleProvider, 
   isFirebaseConfigured, 
-  handleFirestoreError, 
-  OperationType 
+  googleProvider 
 } from '../firebase';
-import { Lead } from '../types';
+
+interface SgtUser extends Partial<User> {
+  uid: string;
+  displayName: string | null;
+  email: string | null;
+  photoURL: string | null;
+  isCommunityMember: boolean;
+}
 
 interface AuthContextType {
-  user: User | null;
+  user: SgtUser | null;
   loading: boolean;
   isConfigured: boolean;
-  crmLeads: Lead[];
-  leadsLoading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signUpWithEmail: (email: string, pass: string, name: string) => Promise<void>;
+  signInWithEmail: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
-  saveLead: (lead: Lead) => Promise<boolean>;
-  updateLeadStatus: (id: string, nextStatus: Lead['status']) => Promise<boolean>;
-  updateLeadDetails: (lead: Lead) => Promise<boolean>;
-  deleteLead: (id: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SgtUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [crmLeads, setCrmLeads] = useState<Lead[]>([]);
-  const [leadsLoading, setLeadsLoading] = useState(false);
 
   // Synchronize Auth State
   useEffect(() => {
     if (!isFirebaseConfigured || !auth) {
-      setUser(null);
+      // Look for a persisted simulated session
+      const savedUser = localStorage.getItem('sgt_simulated_user');
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+        } catch (e) {
+          // ignore
+        }
+      }
       setLoading(false);
       return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+      if (currentUser) {
+        setUser({
+          uid: currentUser.uid,
+          displayName: currentUser.displayName,
+          email: currentUser.email,
+          photoURL: currentUser.photoURL,
+          isCommunityMember: true
+        });
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Synchronize Firestore Leads in Real-Time when logged in
-  useEffect(() => {
-    if (!isFirebaseConfigured || !db || !user) {
-      setCrmLeads([]);
-      return;
-    }
-
-    setLeadsLoading(true);
-    const leadsCollectionPath = `users/${user.uid}/leads`;
-    const q = query(collection(db, leadsCollectionPath));
-
-    const unsubscribe = onSnapshot(
-      q, 
-      (snapshot) => {
-        const fetchedLeads: Lead[] = [];
-        snapshot.forEach((docSnap) => {
-          fetchedLeads.push(docSnap.data() as Lead);
-        });
-        
-        // Sort leads by creation date descending
-        fetchedLeads.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        setCrmLeads(fetchedLeads);
-        setLeadsLoading(false);
-      },
-      (error) => {
-        setLeadsLoading(false);
-        try {
-          handleFirestoreError(error, OperationType.GET, leadsCollectionPath);
-        } catch (wrappedErr) {
-          console.error("Firestore sync error:", wrappedErr);
-        }
-      }
-    );
-
-    return () => unsubscribe();
-  }, [user]);
-
   // Auth Operations
   const signInWithGoogle = async () => {
     if (!isFirebaseConfigured || !auth) {
+      const mock = {
+        uid: "mock-user-google",
+        displayName: "African Investor (Google)",
+        email: "investor@sgtshow.com",
+        photoURL: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop",
+        isCommunityMember: true
+      };
+      setUser(mock);
+      localStorage.setItem('sgt_simulated_user', JSON.stringify(mock));
       window.dispatchEvent(
-        new CustomEvent('hunter-toast', {
+        new CustomEvent('show-toast', {
           detail: {
-            message: "Firebase configuration is not active. Please set up Firebase in the platform panel to enable remote backups.",
-            type: 'error'
+            message: "Connected with simulated Google credentials. Auto-joined SGT Hub community (Yes).",
+            type: 'success'
           }
         })
       );
@@ -119,85 +101,101 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signUpWithEmail = async (email: string, pass: string, name: string) => {
+    if (!isFirebaseConfigured || !auth) {
+      const mock = {
+        uid: "mock-" + Date.now(),
+        displayName: name,
+        email: email,
+        photoURL: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=256&auto=format&fit=crop",
+        isCommunityMember: true
+      };
+      setUser(mock);
+      localStorage.setItem('sgt_simulated_user', JSON.stringify(mock));
+      window.dispatchEvent(
+        new CustomEvent('show-toast', {
+          detail: {
+            message: `Account created for ${name}! Auto-joined SGT Show Community (Yes).`,
+            type: 'success'
+          }
+        })
+      );
+      return;
+    }
+    
+    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+    if (userCredential.user) {
+      await updateProfile(userCredential.user, { displayName: name });
+      setUser({
+        uid: userCredential.user.uid,
+        displayName: name,
+        email: userCredential.user.email,
+        photoURL: userCredential.user.photoURL,
+        isCommunityMember: true
+      });
+      window.dispatchEvent(
+        new CustomEvent('show-toast', {
+          detail: { message: `Account created! Welcome to the SGT Show Community.`, type: 'success' }
+        })
+      );
+    }
+  };
+
+  const signInWithEmail = async (email: string, pass: string) => {
+    if (!isFirebaseConfigured || !auth) {
+      const mock = {
+        uid: "mock-user-email",
+        displayName: email.split('@')[0],
+        email: email,
+        photoURL: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=256&auto=format&fit=crop",
+        isCommunityMember: true
+      };
+      setUser(mock);
+      localStorage.setItem('sgt_simulated_user', JSON.stringify(mock));
+      window.dispatchEvent(
+        new CustomEvent('show-toast', {
+          detail: {
+            message: `Signed in successfully. SGT Show Community membership: Yes.`,
+            type: 'success'
+          }
+        })
+      );
+      return;
+    }
+
+    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+    if (userCredential.user) {
+      setUser({
+        uid: userCredential.user.uid,
+        displayName: userCredential.user.displayName,
+        email: userCredential.user.email,
+        photoURL: userCredential.user.photoURL,
+        isCommunityMember: true
+      });
+      window.dispatchEvent(
+        new CustomEvent('show-toast', {
+          detail: { message: `Welcome back to SGT Show!`, type: 'success' }
+        })
+      );
+    }
+  };
+
   const logout = async () => {
-    if (!isFirebaseConfigured || !auth) return;
+    localStorage.removeItem('sgt_simulated_user');
+    if (!isFirebaseConfigured || !auth) {
+      setUser(null);
+      window.dispatchEvent(
+        new CustomEvent('show-toast', {
+          detail: { message: "Disengaged account session.", type: 'info' }
+        })
+      );
+      return;
+    }
     try {
       await signOut(auth);
+      setUser(null);
     } catch (error) {
       console.error("Sign out fail:", error);
-    }
-  };
-
-  // Safe Database Writes implementing user scope and error-wrapping
-  const saveLead = async (lead: Lead): Promise<boolean> => {
-    // Lead needs to include the userId for security rule validation
-    const leadWithUser = {
-      ...lead,
-      userId: user?.uid || 'guest'
-    };
-
-    if (!isFirebaseConfigured || !db || !user) {
-      // Offline fallback: handled by parent App.tsx endpoint proxy calls
-      return false;
-    }
-
-    const path = `users/${user.uid}/leads/${lead.id}`;
-    try {
-      await setDoc(doc(db, `users/${user.uid}/leads`, lead.id), leadWithUser);
-      return true;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
-      return false;
-    }
-  };
-
-  const updateLeadStatus = async (id: string, nextStatus: Lead['status']): Promise<boolean> => {
-    if (!isFirebaseConfigured || !db || !user) {
-      return false;
-    }
-
-    const path = `users/${user.uid}/leads/${id}`;
-    try {
-      await updateDoc(doc(db, `users/${user.uid}/leads`, id), {
-        status: nextStatus
-      });
-      return true;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
-      return false;
-    }
-  };
-
-  const updateLeadDetails = async (lead: Lead): Promise<boolean> => {
-    if (!isFirebaseConfigured || !db || !user) {
-      return false;
-    }
-
-    const path = `users/${user.uid}/leads/${lead.id}`;
-    try {
-      await setDoc(doc(db, `users/${user.uid}/leads`, lead.id), {
-        ...lead,
-        userId: user.uid
-      }, { merge: true });
-      return true;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
-      return false;
-    }
-  };
-
-  const deleteLead = async (id: string): Promise<boolean> => {
-    if (!isFirebaseConfigured || !db || !user) {
-      return false;
-    }
-
-    const path = `users/${user.uid}/leads/${id}`;
-    try {
-      await deleteDoc(doc(db, `users/${user.uid}/leads`, id));
-      return true;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, path);
-      return false;
     }
   };
 
@@ -206,14 +204,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       isConfigured: isFirebaseConfigured,
-      crmLeads,
-      leadsLoading,
       signInWithGoogle,
-      logout,
-      saveLead,
-      updateLeadStatus,
-      updateLeadDetails,
-      deleteLead
+      signUpWithEmail,
+      signInWithEmail,
+      logout
     }}>
       {children}
     </AuthContext.Provider>

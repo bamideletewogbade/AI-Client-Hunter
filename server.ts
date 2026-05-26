@@ -6,6 +6,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
+import { Asset, DiscussionPost, Watchlist, SgtShowInsight, UserNotification, CommunityMember } from './src/types';
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ const app = express();
 const PORT = 3000;
 
 // Initialize WebSocket server under manual upgrade architecture
+const server = createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 
 function broadcast(data: any) {
@@ -25,7 +27,7 @@ function broadcast(data: any) {
 }
 
 wss.on('connection', (ws) => {
-  console.log('CRM Real-time Pipeline WebSocket Client connected.');
+  console.log('Sgt Show WS client connected.');
   
   ws.on('message', (message) => {
     try {
@@ -37,227 +39,449 @@ wss.on('connection', (ws) => {
       // ignore
     }
   });
-
-  ws.on('close', () => {
-    console.log('CRM Real-time Pipeline WebSocket Client disconnected.');
-  });
 });
 
 app.use(express.json());
 
-// Path to CRM leads persistence storage
-const DB_FILE = path.join(process.cwd(), 'leads_db.json');
+// Path to Sgt Show persistence storage
+const DB_FILE = path.join(process.cwd(), 'sgt_show_db.json');
 
-// Interface definition matching Types
-interface BusinessAnalysis {
-  summary: string;
-  digitalPresenceSummary: string;
-  presenceStrength: 'low' | 'medium' | 'high';
-  operationalPainPoints: string[];
-  systemsNeeded: string[];
-  aiOpportunities: string[];
-  digitalMaturityScore: number;
-}
-
-interface WebDesignStructureSection {
-  sectionName: string;
-  purpose: string;
-  contentHint: string;
-}
-
-interface WebDesignProposal {
-  needDetectedReason: string;
-  suggestedType: string;
-  structure: WebDesignStructureSection[];
-  heroHeadline: string;
-  heroSubheadline: string;
-  selectedCta: string;
-  estimatedValue: string;
-  readyToSellOffer: string;
-}
-
-interface OutreachPitch {
-  email: string;
-  linkedin: string;
-  whatsapp: string;
-}
-
-interface Lead {
-  id: string;
-  name: string;
-  category: string;
-  phone: string | null;
-  address: string;
-  rating: number | null;
-  reviewsCount: number | null;
-  website: string | null;
-  mapsUrl: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  status: 'new' | 'contacted' | 'replied' | 'interested' | 'closed';
-  notes: string;
-  tags: string[];
-  serviceType: 'ai_automation' | 'web_design' | 'hybrid';
-  digitalPresenceScore: number;
-  createdAt: string;
-  aiAnalysis?: BusinessAnalysis | null;
-  webDesignProposal?: WebDesignProposal | null;
-  outreachPitch?: OutreachPitch | null;
-}
-
-// Pre-populate some realistic initial leads if database file is empty
-const INITIAL_LEADS: Lead[] = [
+// Root Data Seed
+const INITIAL_ASSETS: Asset[] = [
   {
-    id: "crm-1",
-    name: "Accra Oasis Dental & Wellness",
-    category: "Dental Clinic",
-    phone: "+233 24 123 4567",
-    address: "12 ring road center, Accra, Ghana",
-    rating: 4.2,
-    reviewsCount: 38,
-    website: null,
-    mapsUrl: "https://maps.google.com/?cid=accra_oasis",
-    latitude: 5.5601,
-    longitude: -0.2057,
-    status: "new",
-    notes: "High potential client. They rely heavily on Google Maps and direct WhatsApp messages for scheduling. Receptionist mentions they get overwhelmed by bookings.",
-    tags: ["No Website", "Manual Bookings", "WhatsApp Reliance", "High Value"],
-    serviceType: "hybrid",
-    digitalPresenceScore: 35,
-    createdAt: new Date().toISOString(),
-    aiAnalysis: {
-      summary: "Modern dental studio in Ring Road Accra specializing in aesthetic general dentistry and family oral hygiene.",
-      digitalPresenceSummary: "Very limited. No dedicated website found; listing points is missing. Currently using generic WhatsApp link for user intake and Facebook page placeholders.",
-      presenceStrength: "low",
-      operationalPainPoints: [
-        "High friction manual booking flow via WhatsApp",
-        "No structured client database or intake history",
-        "Patients struggle to see prices, services, or calendar availability"
-      ],
-      systemsNeeded: [
-        "Patient Intake and Slot Reservation Web Tool",
-        "Automated WhatsApp Bot for direct scheduling reminder",
-        "Google Reviews Auto-Request Pipeline"
-      ],
-      aiOpportunities: [
-        "Intelligent booking form using Cal.com/Calendly or Custom AI Assistant that coordinates calendar spots automatically via WhatsApp.",
-        "Interactive virtual reception bot on landing page to answer patient questions about copays and operating hours."
-      ],
-      digitalMaturityScore: 35
+    id: "us-aapl",
+    name: "Apple Inc.",
+    ticker: "AAPL",
+    price: 178.50,
+    changePercent: -0.45,
+    type: "stock",
+    market: "us",
+    description: "Apple Inc. designs, manufactures, and markets smart mobile communication and media devices, personal computers, and portable digital music players around the world.",
+    beginnerExplanation: "Apple is a global consumer tech pioneer. They build highly integrated premium hardware (iPhones, Macs) and earn high-margin subscription fees (App Store, iCloud) from a fiercely loyal billionaire ecosystem.",
+    sentiment: "neutral",
+    stats: {
+      peRatio: "28.5",
+      marketCap: "$2.82 Trillion",
+      high52w: "$199.60",
+      low52w: "$164.00",
+      volume: "52.4 Million",
+      dividendYield: "0.55%"
     },
-    webDesignProposal: {
-      needDetectedReason: "Tooth wellness clinic without any standalone website footprint. Relies 100% on Map reviews, losing online credibility.",
-      suggestedType: "Booking & Dental Authority Platform",
-      structure: [
-        { sectionName: "Hero Clinic Greeting", purpose: "First Hook", contentHint: "Highlight pain-free premium teeth procedures with direct reservation links." },
-        { sectionName: "Treatment Catalogue", purpose: "Services", contentHint: "List out crowns, scales, cleanings, and pricing tables explicitly." },
-        { sectionName: "Meet Our Dentists", purpose: "Relatability", contentHint: "Professional portraits of credentialed staff build patient trust." },
-        { sectionName: "Interactive Appoints Portal", purpose: "High Conversion Booking", contentHint: "Direct scheduler calendar widget to claim time slots on the spot." }
-      ],
-      heroHeadline: "Modern, Pain-Free Dentistry in the Heart of Accra",
-      heroSubheadline: "Book your expert teeth session online in seconds. Convenient dental Care with Accra's top oral doctors.",
-      selectedCta: "Claim Your Spot Today",
-      estimatedValue: "GH₵ 12,000 + / Month in extra patients",
-      readyToSellOffer: "I'll build a responsive, patient-converting reservation system website integrated with SMS/WhatsApp notifications in 7 days."
-    },
-    outreachPitch: {
-      email: "Dear Accra Oasis Team,\n\nI noticed your brilliant reviews on Google Maps and wanted to reach out. Many locals are looking for top-tier dental care, but since you don't have a website, they can't easily find your list of services or book slots.\n\nI specialize in building quick-converting booking websites for healthcare practices in Accra. I've drafted a layout for a portal that integrates directly with a scheduling helper. This would streamline patient intake so your team isn't glued to WhatsApp all day.\n\nCan I send you a quick 2-minute mock graphic of what this would look like?\n\nBest,\nSales Engineer",
-      whatsapp: "Hello Accra Oasis Dental! 👋 I found you on Maps and saw your clients rave about your care. I noticed you don't have a website for direct clinical booking. I specialize in dental schedulers that automate slot reservations. Would you like to see a free design draft I created for you?",
-      linkedin: "Hi Oasis Team, I specialize in digital operational scale for medical operations in Accra. I mapped out a high-converting web portal flow for your clinic to reduce manual receptionist load. Let's connect if you're looking to scale operations this quarter!"
-    }
+    bullishCase: "Incredible brand equity, high device switching costs, massive capital return program (stock buybacks), and upcoming on-device generative AI features.",
+    bearishCase: "Lengthening smartphone renewal cycles, high dependency on supply chains, and ongoing global regulatory antitrust scrutiny on App Store fees.",
+    news: [
+      {
+        title: "Apple Unveils Dedicated AI Silicon Chips for On-Device Intelligence",
+        summary: "Apple announces next-gen neural cores to process generative tasks privately without sending user audio/text queries to third-party servers.",
+        interpretation: "Strong differentiator. High privacy safeguards are a superb selling point, securing future hardware upgrades.",
+        source: "Wall Street Journal",
+        date: "2026-05-18"
+      }
+    ]
   },
   {
-    id: "crm-2",
-    name: "Lagos Freight Express & Logistics",
-    category: "Courier Service",
-    phone: "+234 80 987 6543",
-    address: "Ikeja Industrial Avenue, Lagos, Nigeria",
-    rating: 3.8,
-    reviewsCount: 75,
-    website: "http://lagosfreightdummy.com",
-    mapsUrl: "https://maps.google.com/?cid=lagos_freight",
-    latitude: 6.5244,
-    longitude: 3.3792,
-    status: "contacted",
-    notes: "They have a basic, old, non-functional website. It is slow, lacks tracking APIs, and has broken contact forms. Direct dispatch calls coordinate everything manually.",
-    tags: ["Broken Website", "Manual Dispatch", "Automate Tracking", "Hot Lead"],
-    serviceType: "ai_automation",
-    digitalPresenceScore: 48,
-    createdAt: new Date().toISOString(),
-    aiAnalysis: {
-      summary: "Industrial freight logistics handler in Mainland Lagos doing heavy container shipping, home packing/delivery, and corporate relocation services.",
-      digitalPresenceSummary: "Weak and obsolete. Their website was built years ago, does not resize on mobile, has broken internal links, and lacks client tracking capabilities.",
-      presenceStrength: "medium",
-      operationalPainPoints: [
-        "Dispatched loads are tracked on Excel booklets which are read manually to querying clients.",
-        "Average quote response time of 4 hours via email.",
-        "Customers must call dispatcher iteratively to request order status updates."
-      ],
-      systemsNeeded: [
-        "Internal Simple Delivery Tracking DB",
-        "WhatsApp AI Spot-Quote Calculator Bot",
-        "Responsive Client tracking web console"
-      ],
-      aiOpportunities: [
-        "Integrate a conversational WhatsApp quote agent: Client sends parcel dimensions and location, the AI computes price, saves dispatch, and issues receipt in 10 seconds.",
-        "Automatic SMS delivery alerts mapped to delivery updates."
-      ],
-      digitalMaturityScore: 48
+    id: "us-msft",
+    name: "Microsoft Corporation",
+    ticker: "MSFT",
+    price: 415.60,
+    changePercent: 1.25,
+    type: "stock",
+    market: "us",
+    description: "Microsoft Corporation develops, licenses, and supports software, services, devices, and solutions worldwide. Its Productivity and Business Processes segment includes Office, Exchange, SharePoint, Microsoft Teams, and LinkedIn.",
+    beginnerExplanation: "Microsoft is the global enterprise engine. Almost every major corporation runs on Office or Windows, and their fast integration of OpenAI tech into cloud services has made them a trillion-dollar cloud titan.",
+    sentiment: "bullish",
+    stats: {
+      peRatio: "35.8",
+      marketCap: "$3.08 Trillion",
+      high52w: "$430.00",
+      low52w: "$315.00",
+      volume: "22.5 Million",
+      dividendYield: "0.72%"
     },
-    webDesignProposal: {
-      needDetectedReason: "Outdated, non-functional site from 2018 with dead interactive components and no mobile-responsiveness.",
-      suggestedType: "Modern Logistical Dispatch Console & Client Site",
-      structure: [
-        { sectionName: "Track Shipments", purpose: "Client Service", contentHint: "Search box where customers input a dispatch number and see real-time route updates." },
-        { sectionName: "Instant Quote Calculator", purpose: "Lead Gen", contentHint: "Select origin, destination, weight, and instantly get estimated shipping rate." },
-        { sectionName: "Services Suite", purpose: "Sales", contentHint: "Dedicated blocks for freight, warehouse space, express parcel courier." },
-        { sectionName: "Corporate Inquiry Portal", purpose: "Enterprise Closing", contentHint: "Clean layout tailored for B2B contract requests." }
-      ],
-      heroHeadline: "Seamless Logistics & Freight Tracking Across Nigeria",
-      heroSubheadline: "Request quotes faster, monitor your packages in real-time, and streamline imports with Lagos's premier warehouse partner.",
-      selectedCta: "Calculate Shipping Rate",
-      estimatedValue: "₦3,500,000 / Month saved in phone support and tracking friction",
-      readyToSellOffer: "Let's redesign your logistics platform with client parcel tracking and an automated WhatsApp CRM module. Completed in 10 days."
+    bullishCase: "Absolute dominance in high-growth enterprise cloud (Azure), swift monetization of Copilot AI extensions, and recurring corporate software contracts.",
+    bearishCase: "Heavy capital requirements for continuous server center expansions, and regulatory reviews of tech consortium acquisitions.",
+    news: [
+      {
+        title: "Microsoft Cloud Revenue Surges 21% as Enterprise AI Adoption Scales",
+        summary: "Microsoft reports record high commercial bookings triggered by rapid Azure neural chip lease demand.",
+        interpretation: "Shows immediate pricing power and conversion from AI research into enterprise-grade profits.",
+        source: "Bloomberg",
+        date: "2026-05-20"
+      }
+    ]
+  },
+  {
+    id: "us-nvda",
+    name: "NVIDIA Corporation",
+    ticker: "NVDA",
+    price: 940.25,
+    changePercent: 4.82,
+    type: "stock",
+    market: "us",
+    description: "Nvidia Corp is the vanguard of global Artificial Intelligence graphics processors (GPUs), building systemic hardware and soft architectures (CUDA) powering AI data warehouses.",
+    beginnerExplanation: "Nvidia is the company that makes the high-performance 'brains' (silicon chips) that companies like Google, Microsoft, and OpenAI buy to training complex AI models like ChatGPT and Gemini.",
+    sentiment: "bullish",
+    stats: {
+      peRatio: "55.4",
+      marketCap: "$2.35 Trillion",
+      high52w: "$974.00",
+      low52w: "$380.00",
+      volume: "48.2 Million",
+      dividendYield: "0.02%"
     },
-    outreachPitch: {
-      email: "Hello Logistics Management,\n\nI was looking to coordinate a dispatch in Lagos and checked your website. I noticed it takes a long time to load on phones and does not support shipment tracking, meaning clients have to call dispatchers iteratively to track boxes.\n\nWe specialize in automated logistic tracking and mobile-responsive websites. I've created a custom concept tracking tool that could integrate into your website so clients can self-serve delivery status reviews on their phones.\n\nThis typically reduces phone call tracking checks by 65% and optimizes quote captures. Can I send a quick video demonstration of this workflow?\n\nBest,\nAutomation Architect",
-      whatsapp: "Hello Lagos Freight team! 🚚 I checked your website while arranging a delivery. The parcel calculator page seems unresponsive on mobile. I help logistics businesses build simple package tracking portals that let clients self-serve. Let me know if you'd like a quick preview!",
-      linkedin: "Hi, I specialize in logistics efficiency software. I designed an interactive parcel status and shipping calculation interface for Lagos Freight providers. Let me know if you would like me to share the visual layout draft."
-    }
+    bullishCase: "Unmatched software ecosystem lock-in with CUDA, high switching costs, insatiable cloud computing GPU demand, and next-gen Blackwell chips selling out instantly.",
+    bearishCase: "Extreme valuation multiples priced for perfection, potential bottleneck exports due to geopolitical chip sanctions, and risk of capital consolidation cooling in tech budgets.",
+    news: [
+      {
+        title: "Nvidia Blackwell GPU Orders Fully Booked for 12 Months",
+        summary: "Tech firms rush to lock supply contracts for new high-density superchips despite premium pricing structures.",
+        interpretation: "Shows demand is not cooling. Keeps revenue estimates exceptionally secure for the coming fiscal cycle.",
+        source: "Wall Street Journal",
+        date: "2026-05-15"
+      }
+    ]
+  },
+  {
+    id: "us-tsla",
+    name: "Tesla, Inc.",
+    ticker: "TSLA",
+    price: 185.30,
+    changePercent: -1.25,
+    type: "stock",
+    market: "us",
+    description: "Tesla, Inc. designs, mass-produces, and implements battery electric motorvehicles, smart solar grids, utility energy storage cells, and deep-learning robotics engines.",
+    beginnerExplanation: "Tesla is the world's most famous electric car maker. However, bulls believe it's actually an AI and robotics company that will unlock millions of autonomous self-driving robotaxis.",
+    sentiment: "neutral",
+    stats: {
+      peRatio: "42.1",
+      marketCap: "$590 Billion",
+      high52w: "$299.00",
+      low52w: "$138.00",
+      volume: "88.4 Million",
+      dividendYield: "N/A"
+    },
+    bullishCase: "Dominance in energy battery storage sales (Megapacks) offsetting car margins, potential breakthrough in FSD software licensing, and upcoming low-cost Model 2 launch.",
+    bearishCase: "Severe margin degradation from electric vehicle price-war cuts, intense localized competition in China (BYD), and slower Western charging infrastructure scaling.",
+    news: [
+      {
+        title: "Tesla Megapacks Outstrip Car Delivery Margin Contributions",
+        summary: "Utility microgrid projects globally register aggressive growth, securing alternative clean tech revenue.",
+        interpretation: "Highly encouraging. Confirms Tesla is a broad energy storage giant, dampening core EV cyclical supply-glut effects.",
+        source: "Bloomberg",
+        date: "2026-05-12"
+      }
+    ]
+  },
+  {
+    id: "crypto-btc",
+    name: "Bitcoin",
+    ticker: "BTC",
+    price: 68450.00,
+    changePercent: -3.20,
+    type: "crypto",
+    market: "crypto",
+    description: "Bitcoin is the pioneer decentralized cryptographic digital asset, functioning as a peer-to-peer sovereign trust network and an alternative store of value ('digital gold').",
+    beginnerExplanation: "Bitcoin is like digital gold. There are only ever 21 million Bitcoins that can exist, meaning government banks cannot print more of it to inflate away your purchasing power.",
+    sentiment: "neutral",
+    stats: {
+      marketCap: "$1.34 Trillion",
+      high52w: "$73,800",
+      low52w: "$26,100",
+      volume: "$31.5 Billion",
+      dividendYield: "N/A"
+    },
+    bullishCase: "Massive institutional inflows from Wall Street Spot ETFs, sovereign reserve allocations, and inflation hedge adoption in hyperinflationary markets.",
+    bearishCase: "Central bank hawkish rates (higher for longer), regulatory pressure on non-KYC mixers, and short-term leverage liquidations in retail derivatives.",
+    news: [
+      {
+        title: "Sovereign Pension Funds Disclose Aggressive Bitcoin ETF Holdings",
+        summary: "State retirement accounts reveal initial multi-million-dollar allocations to regulated BTC holdings.",
+        interpretation: "Institutional validation is absolute. It means price declines will likely trigger strong buying support levels.",
+        source: "CoinDesk",
+        date: "2026-05-22"
+      }
+    ]
+  },
+  {
+    id: "crypto-sol",
+    name: "Solana",
+    ticker: "SOL",
+    price: 165.40,
+    changePercent: 5.80,
+    type: "crypto",
+    market: "crypto",
+    description: "Solana is a high-performance Layer-1 blockchain optimized for fast transaction speed, minimal fees, and massive developer scaling compared to Ethereum.",
+    beginnerExplanation: "Solana is like a super-fast highway for crypto apps. While Ethereum costs $10 in fees and is slow, Solana costs a fraction of a cent and is instant, making it the favorite for active retail traders.",
+    sentiment: "bullish",
+    stats: {
+      marketCap: "$75.2 Billion",
+      high52w: "$210.00",
+      low52w: "$18.50",
+      volume: "$4.1 Billion",
+      dividendYield: "N/A"
+    },
+    bullishCase: "Unequivocal dominance in retail trading and decentralized exchanges (DEX), booming memecoin liquidity pools, and strong performance of independent validators.",
+    bearishCase: "Historically prone to network consensus halts during extreme high traffic, and concerns about native supply centralization.",
+    news: [
+      {
+        title: "Solana DEX Weekly Volume Flips Ethereum Mainnet",
+        summary: "Decentralized trade volumes scale aggressively on Raydium and Jupiter due to retail network preferences.",
+        interpretation: "Signals a fundamental market pivot. Users prefer low transaction costs, driving organic price support on SOL.",
+        source: "Blockworks",
+        date: "2026-05-25"
+      }
+    ]
+  },
+  {
+    id: "commodity-gold",
+    name: "Gold Spot",
+    ticker: "XAU",
+    price: 2350.80,
+    changePercent: 0.85,
+    type: "commodity",
+    market: "global",
+    description: "Gold Spot price represents the global standard target for raw physical bullion transactions, acting as a historical anchor against fiat currency depreciation.",
+    beginnerExplanation: "Gold is the world's oldest currency anchor. When paper currencies fluctuate or inflation prints high globally, institutions buy gold to lock raw purchasing power indices safely.",
+    sentiment: "bullish",
+    stats: {
+      marketCap: "$15.8 Trillion",
+      high52w: "$2,450.00",
+      low52w: "$1,910.00",
+      volume: "$150 Billion Daily",
+      dividendYield: "N/A"
+    },
+    bullishCase: "Persistent sovereign central bank buying, deep fear of high inflation matrices, and geopolitical diversification away from US Treasury reserves.",
+    bearishCase: "Prolonged high federal lending yields increasing opportunity costs of holding yieldless physical metals.",
+    news: [
+      {
+        title: "Global Central Banks Liquidate Yield Treasuries for Physical Gold Reserves",
+        summary: "Report indicates historic raw bullion storage increases by eastern-bank hubs to mitigate inflation exposure.",
+        interpretation: "Strong structural flow. Underwrites deep defensive support regardless of central bank interest rate speeds.",
+        source: "FT Commodities",
+        date: "2026-05-24"
+      }
+    ]
   }
 ];
 
-// Load Database
-let leadsDatabase: Lead[] = [];
+const INITIAL_INSIGHTS: SgtShowInsight[] = [
+  {
+    id: "ins-1",
+    content: "Intel check: Nvidia vs Apple valuation divergence is historic. NVDA is pricing in Blackwell AI chip bookings booked 12 months deep. Apple, on the other hand, is a capital returns compounding monster. Diversified allocation is the secure play! 🧠📈 #GlobalMacro",
+    aiSummary: "Nvidia and Apple display a stark divergence: Nvidia offers explosive generative chip sales growth, whereas Apple operates as a cash buyback machine with high device switching costs. Combining both in global portfolios offers premium high-growth and defensive symmetry.",
+    sentiment: "bullish",
+    createdAt: "2026-05-26T10:00:00Z",
+    assets: ["NVDA", "AAPL"],
+    fullAnalysisId: "us-nvda"
+  },
+  {
+    id: "ins-2",
+    content: "Bitcoin consolidating flatly between $66k and $69k is textbook structural accumulation. Speculators are hunting highly volatile meme liquidity pools on Solana, but sovereign pensions are silently sweep-feeding Spot ETFs. Be conscious of structural accumulation speeds! ⏳🧠 #Crypto",
+    aiSummary: "Bitcoin's flat trade limits are typical accumulation phases. While retail volume targets high-risk pools on cheap chains (Solana), core pension funds are utilizing ETF instruments to capture spot reserves quietly. Long-term metrics remain bullishly supported.",
+    sentiment: "neutral",
+    createdAt: "2026-05-25T14:30:00Z",
+    assets: ["BTC"],
+    fullAnalysisId: "crypto-btc"
+  },
+  {
+    id: "ins-3",
+    content: "Central bank gold buying is the main macro trade of the year. Physical bullion is forming an explicit backstop against global fiat debasement and US dollar reserve weaponization. If real yields drop, expect explosive runups. 📈🪙 #Commodities #Macro",
+    aiSummary: "Sovereign global institutions are aggressively substituting physical Gold bullion for treasury debt assets to shield reserve balances from structural inflation and systemic sanctions. This forms a powerful long-term pricing support baseline.",
+    sentiment: "bullish",
+    createdAt: "2026-05-24T09:15:00Z",
+    assets: ["XAU"],
+    fullAnalysisId: "commodity-gold"
+  }
+];
+
+const INITIAL_DISCUSSIONS: DiscussionPost[] = [
+  {
+    id: "disc-1",
+    assetId: "us-nvda",
+    sector: "tech",
+    title: "Can Nvidia sustain Blackwell margins when competition catches up?",
+    content: "Nvidia has been printing ridiculous profits, but MSFT, GOOG, and Amazon are all designing their own custom silicon ASICs. Will Blackwell's booked backlog protect them for another 24 months, or does margin degradation loom?",
+    authorName: "Marcus Sterling",
+    authorEmail: "marcus.st@macro.io",
+    reactions: { bullish: 24, bearish: 4, neutral: 8 },
+    comments: [
+      {
+        id: "com-1-1",
+        postId: "disc-1",
+        content: "Custom chips are hyper-specialized, but Nvidia's CUDA software ecosystem is the actual moat. You don't just buy GPUs, you buy the whole runtime library stack.",
+        authorName: "Elena Rostova",
+        authorEmail: "elena@silicon.com",
+        reaction: "bullish",
+        createdAt: "2026-05-26T11:20:00Z"
+      },
+      {
+        id: "com-1-2",
+        postId: "disc-1",
+        content: "Valuations are incredibly high, but demand stays absolute. I'm pricing MSFT orders deep into NVDA's pipeline. Hold long.",
+        authorName: "Aoki Tanaka",
+        authorEmail: "aoki@capital.jp",
+        reaction: "neutral",
+        createdAt: "2026-05-26T12:05:00Z"
+      }
+    ],
+    createdAt: "2026-05-26T08:00:00Z",
+    aiSummary: "Forum community supports structural long stance (75% Bullish or Neutral). Most analysts outline Nvidia's key differentiator as their CUDA software stack integration rather than raw silicon chips, sustaining heavy margins deep into late 2027."
+  },
+  {
+    id: "disc-2",
+    assetId: "crypto-btc",
+    sector: "crypto",
+    title: "Bitcoin Spot ETF consolidation vs retail on-chain activity",
+    content: "With ETF flows showing massive daily inflows from state-level pension groups, why is spot price hovering quietly at $68k? Is on-chain speculation moving away into Solana or is this silent institutional capture?",
+    authorName: "Devon Cole",
+    authorEmail: "devon@coinventure.com",
+    reactions: { bullish: 12, bearish: 2, neutral: 5 },
+    comments: [],
+    createdAt: "2026-05-25T16:00:00Z",
+    aiSummary: "Subscribers maintain extremely high strategic conviction. They characterize current flat ranges as institutional lockboxes, capturing available spot liquidity silently off-exchange to secure long-term allocations."
+  }
+];
+
+const INITIAL_WATCHLISTS: Watchlist[] = [
+  {
+    id: "sys-ngx-banking",
+    name: "NGX Banking Shield",
+    description: "Premium high-yield financial stocks in Nigeria.",
+    assets: ["ngx-gtco"],
+    isSystem: true,
+    creatorName: "Sgt Show"
+  },
+  {
+    id: "sys-us-ai-momentum",
+    name: "US AI Powerhouse",
+    description: "Global tech leaders steering Artificial Intelligence growth.",
+    assets: ["us-nvda", "us-tsla"],
+    isSystem: true,
+    creatorName: "Sgt Show"
+  },
+  {
+    id: "sys-crypto-momentum",
+    name: "Crypto Bluechips",
+    description: "Major sovereign trust cryptos.",
+    assets: ["crypto-btc", "crypto-sol"],
+    isSystem: true,
+    creatorName: "Sgt Show"
+  }
+];
+
+const INITIAL_NOTIFICATIONS: UserNotification[] = [
+  {
+    id: "not-1",
+    title: "Sgt Show Posted fresh Market Insight",
+    body: "GTCO vs Windfall CBN Taxes: 'Ignore the daily noise. Massive dividends loading!' Review the breakout.",
+    category: "insight",
+    createdAt: "2026-05-26T10:05:00Z",
+    read: false
+  },
+  {
+    id: "not-2",
+    title: "Solana (SOL) surges +5.80% in DEX swap volume rally",
+    body: "Solana semanal volumes flip Ethereum mainnet protocols. Check out the bullish analyst cases.",
+    category: "movement",
+    createdAt: "2026-05-25T21:45:00Z",
+    read: true
+  }
+];
+
+const INITIAL_MEMBERS: CommunityMember[] = [
+  {
+    uid: "member-1",
+    displayName: "Kelechi_Alpha",
+    email: "kelechi@sgtshow.com",
+    createdAt: "2026-01-10T11:20:00Z",
+    isPublic: true,
+    avatarColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    badge: "Sovereign Strategist",
+    bio: "Global macro analyst. Tracking yield spreads, Federal Reserve cycles, artificial intelligence chip scale bounds, and multi-market asset telemetry."
+  },
+  {
+    uid: "member-2",
+    displayName: "SgtShow01",
+    email: "founder@sgtshow.com",
+    createdAt: "2026-02-14T08:30:00Z",
+    isPublic: true,
+    avatarColor: "bg-[#FE8C00]/10 text-[#FE8C00] border-[#FE8C00]/20",
+    badge: "Founder & Curator",
+    bio: "Main editor. Building SGT signal chains to safeguard retail portfolios from paper debasing using heavy durables and cryptocurrency trends."
+  },
+  {
+    uid: "member-3",
+    displayName: "Tayo_Fx_Spec",
+    email: "tayo@sgtshow.com",
+    createdAt: "2026-03-01T15:45:00Z",
+    isPublic: true,
+    avatarColor: "bg-sky-500/10 text-sky-400 border-sky-500/20",
+    badge: "Liquidity Scout",
+    bio: "Forex speculator and commodity trader. Specializing in physical bullion (Gold/XAU), network-fee optimization protocols, and corporate margin levels."
+  },
+  {
+    uid: "member-4",
+    displayName: "Bisi_Global_Invest",
+    email: "bisi@sgtshow.com",
+    createdAt: "2026-04-20T10:15:00Z",
+    isPublic: true,
+    avatarColor: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+    badge: "Retail Advocate",
+    bio: "Long-term strategist. Focusing on high free cashflow tech assets, Bitcoin range-bound accumulation, and premium corporate dividend holders."
+  }
+];
+
+// Load Database locally or write defaults
+let sgtShowDb: {
+  assets: Asset[];
+  insights: SgtShowInsight[];
+  discussions: DiscussionPost[];
+  watchlists: Watchlist[];
+  notifications: UserNotification[];
+  members: CommunityMember[];
+} = {
+  assets: [...INITIAL_ASSETS],
+  insights: [...INITIAL_INSIGHTS],
+  discussions: [...INITIAL_DISCUSSIONS],
+  watchlists: [...INITIAL_WATCHLISTS],
+  notifications: [...INITIAL_NOTIFICATIONS],
+  members: [...INITIAL_MEMBERS]
+};
+
 if (fs.existsSync(DB_FILE)) {
   try {
-    const rawData = fs.readFileSync(DB_FILE, 'utf-8');
-    leadsDatabase = JSON.parse(rawData);
+    const raw = fs.readFileSync(DB_FILE, 'utf-8');
+    const parsed = JSON.parse(raw);
+    sgtShowDb = {
+      assets: parsed.assets || [...INITIAL_ASSETS],
+      insights: parsed.insights || [...INITIAL_INSIGHTS],
+      discussions: parsed.discussions || [...INITIAL_DISCUSSIONS],
+      watchlists: parsed.watchlists || [...INITIAL_WATCHLISTS],
+      notifications: parsed.notifications || [...INITIAL_NOTIFICATIONS],
+      members: parsed.members || [...INITIAL_MEMBERS]
+    };
   } catch (error) {
-    console.error("Error reading database file, loading defaults:", error);
-    leadsDatabase = [...INITIAL_LEADS];
+    console.error("DB reading failed, resetting to defaults:", error);
   }
 } else {
-  leadsDatabase = [...INITIAL_LEADS];
-  fs.writeFileSync(DB_FILE, JSON.stringify(leadsDatabase, null, 2));
+  fs.writeFileSync(DB_FILE, JSON.stringify(sgtShowDb, null, 2));
 }
 
-// Save helper
-function saveDatabase() {
+function saveDb() {
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(leadsDatabase, null, 2));
-  } catch (error) {
-    console.error("Failed to persist database file:", error);
+    fs.writeFileSync(DB_FILE, JSON.stringify(sgtShowDb, null, 2));
+  } catch (e) {
+    console.error("Failed to persist database:", e);
   }
 }
 
-// Lazy load Gemini AI Client
+// Lazy Load Gemini API
 let aiClient: GoogleGenAI | null = null;
 function getGeminiClient(): GoogleGenAI | null {
   if (!aiClient) {
     const key = process.env.GEMINI_API_KEY;
     if (!key) {
-      console.warn("GEMINI_API_KEY is not defined - functioning in standard simulation mode.");
+      console.warn("GEMINI_API_KEY is not defined. Deploying local simulated intelligence models.");
       return null;
     }
     aiClient = new GoogleGenAI({
@@ -272,1010 +496,563 @@ function getGeminiClient(): GoogleGenAI | null {
   return aiClient;
 }
 
-// Generates incredibly high-fidelity fallback data dynamically if Google Search / Gemini credentials are missing
-function getRealisticFallbacks(query: string): Lead[] {
-  const searchQuery = (query || '').toLowerCase();
-  
-  // Extract location or keyword hints
-  let city = "Lagos";
-  if (searchQuery.includes("accra") || searchQuery.includes("ghana")) city = "Accra";
-  else if (searchQuery.includes("london") || searchQuery.includes("uk")) city = "London";
-  else if (searchQuery.includes("kumasi")) city = "Kumasi";
-  else if (searchQuery.includes("nairobi") || searchQuery.includes("kenya")) city = "Nairobi";
-  else if (searchQuery.includes("new york") || searchQuery.includes("ny")) city = "New York";
-
-  let industry = "Service Provider";
-  if (searchQuery.includes("dentist") || searchQuery.includes("clinic") || searchQuery.includes("hospital")) industry = "Medical";
-  else if (searchQuery.includes("restaurant") || searchQuery.includes("food") || searchQuery.includes("cafe")) industry = "F&B";
-  else if (searchQuery.includes("logistics") || searchQuery.includes("freight") || searchQuery.includes("delivery")) industry = "Logistics";
-  else if (searchQuery.includes("school") || searchQuery.includes("academy") || searchQuery.includes("tutor") || searchQuery.includes("education")) industry = "Education";
-  else if (searchQuery.includes("hotel") || searchQuery.includes("resort") || searchQuery.includes("inn") || searchQuery.includes("lodg")) industry = "Hospitality";
-  else if (searchQuery.includes("gym") || searchQuery.includes("fitness") || searchQuery.includes("workout") || searchQuery.includes("training")) industry = "Fitness";
-  else if (searchQuery.includes("construction") || searchQuery.includes("builder") || searchQuery.includes("architect")) industry = "Construction";
-
-  // Coordinates anchor based on guessed city
-  let coords = { lat: 6.5244, lng: 3.3792 }; // Lagos
-  if (city === "Accra") coords = { lat: 5.5601, lng: -0.2057 };
-  else if (city === "Kumasi") coords = { lat: 6.6906, lng: -1.6244 };
-  else if (city === "London") coords = { lat: 51.5074, lng: -0.1278 };
-  else if (city === "Nairobi") coords = { lat: -1.2921, lng: 36.8219 };
-  else if (city === "New York") coords = { lat: 40.7128, lng: -74.0060 };
-
-  // Define templates matching guessed industry
-  const names: string[] = [];
-  const webStates: (string | null)[] = [];
-  const tags: string[][] = [];
-  const ratings: number[] = [];
-  const reviewsCounts: number[] = [];
-  const categories: string[] = [];
-  const phones: string[] = [];
-  const addresses: string[] = [];
-
-  const phonePrefix = city === "Accra" || city === "Kumasi" ? "+233 20 " : city === "Lagos" ? "+234 81 " : city === "London" ? "+44 20 " : "+1 212 ";
-
-  if (industry === "Medical") {
-    names.push(`Prestige Care ${city} Health`, `St. Jude Specialist Clinic`, `Central Family Care Clinic`, `${city} Dental & Orthodontic Hub`);
-    categories.push("Multi-Specialty Clinic", "Physiotherapy Center", "Pediatrist Clinic", "Dental Studio");
-    webStates.push(null, `http://stjude${city.toLowerCase()}.com`, null, null);
-    tags.push(
-      ["No Website", "Manual Inquiries", "High Value", "Receptions Busy"],
-      ["Legacy Web Presence", "Slow Load Speed", "No Calendar Booking"],
-      ["No Website", "Facebook Reliance", "Offline Intake Form", "Opportunity"],
-      ["Missing Website", "WhatsApp Bookings", "Dental Spa Setup"]
-    );
-    ratings.push(3.9, 4.4, 3.6, 4.2);
-    reviewsCounts.push(18, 55, 9, 31);
-  } else if (industry === "F&B") {
-    names.push(`${city} Spices Kitchen`, `Le Bouquet Coffee & Pastry`, `Bento Grill & Eats`, `Golden Crust Bakehouse`);
-    categories.push("Fine Dining African", "Cafe & Bistro", "Seafood Grill", "Traditional Bakery");
-    webStates.push(null, `http://lebouquet${city.toLowerCase()}.org`, null, null);
-    tags.push(
-      ["No Website", "Instagram-Only Menu", "Manual Orders", "WhatsApp Reliance"],
-      ["Old WordPress Menu", "Non-Mobile Responsive", "Hard to Find Location"],
-      ["No Website", "Walk-Ins Primarily", "Lacks Online Checkout", "Hot Spot"],
-      ["No Website", "Popular Spot", "Local Sensation", "Web Opportunity"]
-    );
-    ratings.push(4.6, 4.1, 3.9, 4.8);
-    reviewsCounts.push(112, 43, 27, 89);
-  } else if (industry === "Logistics") {
-    names.push(`SwiftDelivery Logistics ${city}`, `Speedway Freight Handlers`, `Apex Cargo Hub`, `Express Parcel Packagers`);
-    categories.push("Courier & Express Mail", "Third Party Warehouse", "Freight Forwarder", "Local Moving Company");
-    webStates.push(`http://swiftdeliver${city.toLowerCase()}.com`, null, null, null);
-    tags.push(
-      ["Has Old Site", "No Tracker Link", "Customer Call Overhead"],
-      ["No Website", "Call Dispatcher Directly", "Paper Receipting", "Automation Gap"],
-      ["No Website", "B2B Cargo Contracts", "Manual Spot Rates", "High Potential"],
-      ["No Website", "Relying on Google Listings", "Local Delivery Team"]
-    );
-    ratings.push(3.3, 4.1, 3.5, 4.0);
-    reviewsCounts.push(62, 14, 8, 22);
-  } else if (industry === "Hospitality") {
-    names.push(`Royal Meridian Hotel ${city}`, `Serene Horizon Resorts`, `Oasis View Inn & Suites`, `The Grand Heritage Lodge`);
-    categories.push("Luxury Hotel", "Boutique Resort", "Executive Guest House", "Eco-Lodge & Spa");
-    webStates.push(null, `http://serenehorizon${city.toLowerCase()}.com`, null, null);
-    tags.push(
-      ["No Website", "Manual Reservations", "High Package Value", "Lacks Room Booking"],
-      ["Old WordPress Theme", "Slow Load Time", "Broken Slider Grid"],
-      ["No Website", "Relying on Booking.com", "Commission Loss", "Hot Target"],
-      ["No Website", "Social Inquiries Onlies", "Scenic Spot"]
-    );
-    ratings.push(4.5, 4.2, 3.8, 4.7);
-    reviewsCounts.push(142, 64, 19, 83);
-  } else if (industry === "Education") {
-    names.push(`${city} Modern Academy`, `Pristine Kids Montessori`, `Elite International School`, `Summit Vocational Institute`);
-    categories.push("Private High School", "Montessori Preschool", "Secondary College", "Technical Skills Center");
-    webStates.push(null, `http://pristinekids${city.toLowerCase()}.sch.ng`, null, null);
-    tags.push(
-      ["No Website", "Phone Inquiries Only", "Manual Admissions", "High Value"],
-      ["Legacy School Site", "Unfinished Syllabus Page", "Non-Responsive Layout"],
-      ["No Website", "Facebook Brochure Page", "Lacks Interactive Portal"],
-      ["No Website", "Great Parent Reviews", "Syllabus Missing"]
-    );
-    ratings.push(4.4, 4.7, 4.1, 4.3);
-    reviewsCounts.push(35, 29, 12, 18);
-  } else if (industry === "Fitness") {
-    names.push(`Ironclad Gym & Fitness ${city}`, `Pinnacle Core Pilates`, `Vanguard Athletic Club`, `The Arena Combat & Boxing`);
-    categories.push("Commercial Health Club", "Pilates & Yoga Studio", "Premium Wellness Hub", "Martial Arts Gym");
-    webStates.push(null, `http://pinnaclepilates${city.toLowerCase()}.com`, null, null);
-    tags.push(
-      ["No Website", "Instagram Member Intake", "Manual Subscription Setup", "Hot Lead"],
-      ["Broken Page", "Lacks Class Schedulers", "Missing Price Structures"],
-      ["No Website", "Offline Member Registration", "Great Foot Traffic"],
-      ["No Website", "In-Gym Manual Forms", "Niche Community Focus"]
-    );
-    ratings.push(4.8, 4.5, 4.3, 4.9);
-    reviewsCounts.push(78, 22, 14, 53);
-  } else {
-    // Default generic templates
-    names.push(`${city} Hub Enterprise`, `${city} Academy of Talents`, `Solid Foundation Builders`, `Prestige Auto Repair`);
-    categories.push("Business Agency", "Vocational School", "Home Restoration Contractor", "Car Maintenance Workshop");
-    webStates.push(null, `http://academy${city.toLowerCase()}.com`, null, null);
-    tags.push(
-      ["No Website", "Relying on Maps", "Manual Leads Intake"],
-      ["Legacy Website", "No Online Syllabus", "Hard to Register", "Education API"],
-      ["No Website", "Great Reviews", "Missing Showcase Gallery", "Local Builder"],
-      ["No Website", "Needs Appointment Scheduler", "Premium Workshop"]
-    );
-    ratings.push(4.2, 4.5, 3.7, 4.6);
-    reviewsCounts.push(31, 48, 12, 60);
-  }
-
-  const results: Lead[] = [];
-  const maxResults = Math.min(5, names.length);
-
-  for (let i = 0; i < maxResults; i++) {
-    // Offset coordinates slightly to group them on map
-    const latOffset = (Math.random() - 0.5) * 0.025;
-    const lngOffset = (Math.random() - 0.5) * 0.025;
-    
-    const isWebsiteMissing = webStates[i] === null;
-    const computedScore = isWebsiteMissing 
-      ? Math.floor(25 + Math.random() * 20) // 25 - 45
-      : Math.floor(45 + Math.random() * 25); // 45 - 70
-
-    results.push({
-      id: `lead-mock-${i}-${Date.now()}`,
-      name: names[i],
-      category: categories[i],
-      phone: phonePrefix + Math.floor(1000000 + Math.random() * 9000000),
-      address: `${Math.floor(10 + Math.random() * 150)} Commercial Way, ${city}`,
-      rating: ratings[i],
-      reviewsCount: reviewsCounts[i],
-      website: webStates[i],
-      mapsUrl: `https://maps.google.com/?q=${encodeURIComponent(names[i] + " " + city)}`,
-      latitude: coords.lat + latOffset,
-      longitude: coords.lng + lngOffset,
-      status: "new",
-      notes: isWebsiteMissing 
-        ? "Identified with high priority due to missing official website. They are losing significant organic traffic in search results." 
-        : "They have a legacy online setup. User reviews are healthy, but can optimize with automated client capture forms.",
-      tags: tags[i],
-      serviceType: isWebsiteMissing ? 'web_design' : (Math.random() > 0.5 ? 'ai_automation' : 'hybrid'),
-      digitalPresenceScore: computedScore,
-      createdAt: new Date().toISOString()
-    });
-  }
-
-  return results;
-}
-
-// Generates detailed dynamic analysis report as a high-grade backup fallback
-function getDynamicAnalysis(lead: Lead): BusinessAnalysis {
-  const strength = !lead.website ? "low" as const : "medium" as const;
-  const mockMaturity = lead.website ? Math.floor(45 + Math.random() * 20) : Math.floor(20 + Math.random() * 20);
-  
-  const categoryLower = (lead.category || '').toLowerCase();
-  const isMedical = categoryLower.includes("clinic") || categoryLower.includes("dent") || categoryLower.includes("health") || categoryLower.includes("physio") || categoryLower.includes("doctor") || categoryLower.includes("hospital");
-  const isFood = categoryLower.includes("eat") || categoryLower.includes("rest") || categoryLower.includes("bak") || categoryLower.includes("cafe") || categoryLower.includes("food");
-  const isLogistics = categoryLower.includes("delivery") || categoryLower.includes("freight") || categoryLower.includes("logis") || categoryLower.includes("cargo") || categoryLower.includes("courier");
-
-  let summary = `Established local provider of ${lead.category || 'professional'} services. Prominent local reputation with steady customer traffic but untapped digital capability.`;
-  let digitalPresenceSummary = "";
-  let operationalPainPoints: string[] = [];
-  let systemsNeeded: string[] = [];
-  let aiOpportunities: string[] = [];
-
-  if (lead.website) {
-    digitalPresenceSummary = `Legacy web presence found at ${lead.website}. However, it lacks mobile responsive layouts, modern interactive widgets, direct reservation pipelines, and strong SEO metadata optimizing local searches.`;
-  } else {
-    digitalPresenceSummary = `Critically deficient. No official standalone web footprint discovered. The business relies exclusively on direct third-party list references (Google Maps/Facebook), presenting a major security and brand conversion threat in search queries.`;
-  }
-
-  if (isMedical) {
-    summary = `Physician-led clinical workshop specializing in professional, high-standard ${lead.category} care in the community.`;
-    operationalPainPoints = [
-      "High front-desk phone congestion during peak appointment blocks",
-      "Manual intake processing upon patient arrival, creating patient waiting delays",
-      "Absence of an automated reviews outreach cycle, limiting search rankings"
-    ];
-    systemsNeeded = [
-      "Patient Self-Booking Calendar Integration",
-      "Digital Patient Intake & Health Form Portal",
-      "Automated WhatsApp Consultation Check-In Bot"
-    ];
-    aiOpportunities = [
-      "AI-driven patient inquiry answering bot hosted on WhatsApp to instantly handle standard operating and billing queries.",
-      "Smart follow-up reminder agent predicting patient check-up cycles based on history and texting booking invites."
-    ];
-  } else if (isFood) {
-    summary = `Bespoke local culinary brand offering handcrafted gourmet selections and quality curated menus for regional guests.`;
-    operationalPainPoints = [
-      lead.website ? "Outdated web menu which mismatches current prices and catalog offerings" : "Manual order coordination via phone calls and individual Instagram DMs",
-      "Loss of potential catering and bulk booking leads due to lack of a structured corporate intake form",
-      "High platform commission rates on local aggregate food delivery networks"
-    ];
-    systemsNeeded = [
-      "Commission-Free Direct Online Ordering Hub",
-      "Interactive Digital Catering & Events Request Module",
-      "Google Reviews Booster automated script"
-    ];
-    aiOpportunities = [
-      "Intelligent menu recommendation agent assisting web guests to build catering bundles based on guest dietary preferences.",
-      "WhatsApp AI ordering concierge that receives custom item instructions, computes the price, and updates kitchen terminals."
-    ];
-  } else if (isLogistics) {
-    summary = `Specialized transportation and supply workflow partner coordinating freight movements and local parcel distributions.`;
-    operationalPainPoints = [
-      "Customers calling customer service lines repeatedly to check shipment status updates",
-      "Manual dispatch Excel tracking, prone to human documentation mismatch",
-      "Quote response bottlenecks where customers wait hours to receive custom volume shipping rates"
-    ];
-    systemsNeeded = [
-      "Self-Serve Package Status Tracking Tool",
-      "Instant Shipping Route Quote Calculator",
-      "Central Digital Fleet Management Dashboard"
-    ];
-    aiOpportunities = [
-      "Automated price quote computation engine that analyzes parcel dimensions via WhatsApp and emails instant rate sheets.",
-      "AI route intelligence assistant dispatching SMS-based progress alerts when drivers change transit nodes."
-    ];
-  } else {
-    // Generic
-    operationalPainPoints = [
-      lead.website ? "Legacy contact forms frequently throwing capture errors" : "Manual appointment scheduling and customer inquiry coordination",
-      "Zero client segmentation, restricting the ability to promote repeat business packages",
-      "Unoptimized local search visibility, losing market share to tech-savvy competitors"
-    ];
-    systemsNeeded = [
-      "Convertible Landing Page & Client Portal",
-      "Interactive Scheduling and Reservations Booking Module",
-      "Unified Customer CRM with Reviews Automation"
-    ];
-    aiOpportunities = [
-      "Deploy an instant conversational customer support agent to capture customer leads 24/7 on the website.",
-      "AI-driven marketing scheduler that auto-generates localized promo texts and targets passive client accounts."
-    ];
-  }
-
-  return {
-    summary,
-    digitalPresenceSummary,
-    presenceStrength: strength,
-    operationalPainPoints,
-    systemsNeeded,
-    aiOpportunities,
-    digitalMaturityScore: mockMaturity
-  };
-}
-
-// Generates dynamic website proposals as high-grade backups
-function getDynamicProposal(lead: Lead, analysis?: BusinessAnalysis): WebDesignProposal {
-  const categoryLower = (lead.category || '').toLowerCase();
-  const isMedical = categoryLower.includes("clinic") || categoryLower.includes("dent") || categoryLower.includes("health") || categoryLower.includes("physio") || categoryLower.includes("doctor") || categoryLower.includes("hospital");
-  const isFood = categoryLower.includes("eat") || categoryLower.includes("rest") || categoryLower.includes("bak") || categoryLower.includes("cafe") || categoryLower.includes("food");
-  const isLogistics = categoryLower.includes("delivery") || categoryLower.includes("freight") || categoryLower.includes("logis") || categoryLower.includes("cargo") || categoryLower.includes("courier");
-
-  const needDetectedReason = lead.website
-    ? `Obsolete web platform that looks broken on modern smartphone sizes and fails to provide secure booking features.`
-    : `Total online invisibility. Competitors with actual websites are capturing more clients who search Google Map/general directories.`;
-
-  let suggestedType = "Modern Business Conversion Portal";
-  let structure: WebDesignStructureSection[] = [];
-  let heroHeadline = `Your Premier Partner for ${lead.category || 'Professional'} Excellence`;
-  let heroSubheadline = `Experience reliable, top-tier service tailored to your absolute convenience. Secure your appointment or check rates online in seconds.`;
-  let selectedCta = "Book Your Session Now";
-  let estimatedValue = "$1,500/mo";
-  const readyToSellOffer = `I will build a high-performance, mobile-optimized business website equipped with real-time automated appointment booking and customer SMS updates in 7 days flat.`;
-
-  const searchStr = ((lead.address || '') + " " + (lead.name || '')).toLowerCase();
-  let currency = "$";
-  if (searchStr.includes("accra") || searchStr.includes("ghana")) currency = "GH₵";
-  else if (searchStr.includes("lagos") || searchStr.includes("nigeria")) currency = "₦";
-  else if (searchStr.includes("london") || searchStr.includes("uk") || searchStr.includes("pound")) currency = "£";
-
-  if (isMedical) {
-    suggestedType = "Clinical Patient Intel-Scheduler Hub";
-    structure = [
-      { sectionName: "Medical Core Promise", purpose: "Patient comfort & clinical safety credential", contentHint: `Showcase certified specialists for ${lead.category}, highlight pain-free treatment policies, and provide instant reservation triggers.` },
-      { sectionName: "Interactive Treatment Scheduler", purpose: "Erase front office manual calls", contentHint: "Clean, calendar-based interface where patients choose a treatment category, select their doctor, and lock a clinical slot." },
-      { sectionName: "Patient Success Stories", purpose: "Social validation and clinic trust", contentHint: "High-contrast carousel of verified local Google reviews showcasing real patient experiences." },
-      { sectionName: "Clinical FAQs & Pricing Care", purpose: "Reduce intake friction", contentHint: "Clear, reassuring breakdowns of standard consultations, copays, and accepted insurances." }
-    ];
-    heroHeadline = `State-of-the-Art ${lead.category || 'Clinical'} Care for You and Your Family`;
-    heroSubheadline = `Get exceptional, certified treatments without long waiting lines or complex calling setups. Schedule your clinical appointment online in under a minute.`;
-    selectedCta = "Claim My Medical Appointment Slot";
-    estimatedValue = currency === "GH₵" ? "GH₵ 12,500/mo" : currency === "₦" ? "₦1,800,000/mo" : "£2,200/mo";
-  } else if (isFood) {
-    suggestedType = "Direct Commission-Free Delivery & Menu Engine";
-    structure = [
-      { sectionName: "Hero Visual Gastro Grille", purpose: "Visual taste hook & CTA", contentHint: "Ultra-crisp photography of core plated recipes with high-contrast 'Order Direct' and 'Reserve Table' action buttons." },
-      { sectionName: "Interactive Live Menu Catalogue", purpose: "Drive cart checkout", contentHint: "Digital categorized menu showing price ranges, special ingredients, and instant add-to-cart mechanisms." },
-      { sectionName: "Direct Table Reservation Console", purpose: "Erase manual reservation tracking", contentHint: "Simple calendar booking portal allowing patrons to claim dining tables & specify guest tallies." },
-      { sectionName: "Private Events & Catering Planner", purpose: "Unlock high-margin deals", contentHint: "Custom inquiries form allowing corporate planners to select party packages and receive automated price bids." }
-    ];
-    heroHeadline = `Savor Handcrafted Culinary Creations Direct to Your Door`;
-    heroSubheadline = `Skip the high platform delivery commissions. Order your favorite dishes direct from our chef's kitchen or book table reservations online in seconds.`;
-    selectedCta = "Order Direct & Save 15%";
-    estimatedValue = currency === "GH₵" ? "GH₵ 8,000/mo" : currency === "₦" ? "₦950,000/mo" : "£1,400/mo";
-  } else if (isLogistics) {
-    suggestedType = "Interactive Cargo Route & Dispatch Dashboard";
-    structure = [
-      { sectionName: "Instant Delivery Status Tracker", purpose: "Instant self-serve package location lookup", contentHint: "Clean search widget where clients type their tracking number and see their current route phase on a map." },
-      { sectionName: "Freight Cargo Rate Calculator", purpose: "Drive inbound shipping orders", contentHint: "Dynamic input form where business partners input weight, parcel class, origin, and destination to get real-time price sheets." },
-      { sectionName: "Our Distribution Network", purpose: "Authority & reliability showcase", contentHint: "Interactive regional maps highlighting transport nodes, warehouse storage capacities, and express flight lanes." },
-      { sectionName: "Commercial Enterprise Shipping Portal", purpose: "High-volume business capture", contentHint: "Direct onboarding frame for corporate logistics contracts with bulk dispatch discounts." }
-    ];
-    heroHeadline = `Fast, Reliable Cargo Dispatch & Real-Time Package Tracking`;
-    heroSubheadline = `Compute instant logistics quotes and monitor your items every step of the transit route. Professional delivery solutions for enterprise and local shippers.`;
-    selectedCta = "Calculate Shipping Rates Instantly";
-    estimatedValue = currency === "GH₵" ? "GH₵ 25,000/mo" : currency === "₦" ? "₦3,800,000/mo" : "£4,500/mo";
-  } else {
-    // Generic
-    structure = [
-      { sectionName: "Service Offer Core Promise", purpose: "Local expertise value hook", contentHint: `Bold visual of ${lead.name || 'your'} operations, highlighting certified results, speed, and immediate contact buttons.` },
-      { sectionName: "Interactive Booking & Consult Form", purpose: "Erase back-and-forth appointment calls", contentHint: "Calendar interface allowing visitors to select their needed service type and lock a confirmed session." },
-      { sectionName: "Visual Gallery of Completed Work", purpose: "Premium proof of work", contentHint: "High-contrast before/after grid or high-definition project showcase displaying recent work with customer satisfaction scores." },
-      { sectionName: "Client Success Carousel", purpose: "Erase buyer hesitation", contentHint: "Interactive feedback grid syncing actual Google review ratings with custom text, highlighting your reliability." }
-    ];
-    heroHeadline = `The Community's Most Reliable ${lead.category || 'Service'} Solutions`;
-    heroSubheadline = `Expert, certified service delivered on-time, every time. Book your fast consultation or request a custom quote online with our local team.`;
-    selectedCta = "Schedule Your Expert Consultation";
-    estimatedValue = currency === "GH₵" ? "GH₵ 6,000/mo" : currency === "₦" ? "₦800,000/mo" : "£1,200/mo";
-  }
-
-  return {
-    needDetectedReason,
-    suggestedType,
-    structure,
-    heroHeadline,
-    heroSubheadline,
-    selectedCta,
-    estimatedValue,
-    readyToSellOffer
-  };
-}
-
-// Generates dynamic consulting proposal cold pitches
-function getDynamicPitch(lead: Lead, analysis: BusinessAnalysis, proposal?: WebDesignProposal): OutreachPitch {
-  const currentProp = proposal || getDynamicProposal(lead, analysis);
-  const ratingText = lead.rating ? `${lead.rating}/5 stars from ${lead.reviewsCount} local reviews` : "great ratings";
-  
-  const emailSubject = lead.website 
-    ? `Redesign proposal for ${lead.name} to optimize client conversions`
-    : `Quick interactive layout check for ${lead.name} team`;
-
-  const leadNameClean = (lead.name || 'your business').replace(/[&\/\\#,+()$~%.'":*?<>{}]/g, '');
-
-  const email = `Subject: ${emailSubject}
-
-Dear ${leadNameClean} Team,
-
-I came across your business while researching the local area and saw your excellent rating on Google Maps (${ratingText}). Your reviews show that you have a wonderful reputation for quality in the community.
-
-However, I noticed a digital checkpoint that is currently limiting your client conversions:
-${lead.website ? `The website listed on your profile has dynamic mobile-responsiveness issues, meaning local customers searching on their phones see a broken, outdated layout that doesn't support easy online bookings.` : `Your business currently does not have an official website listed on your business profile. This means local customers searching for ${lead.category} services might be choosing competitors who offer a direct booking page.`}
-
-I specialize in building rapid, high-converting platforms specifically for ${lead.category || 'local'} providers. I actually sketched out an interactive web proposal concept specifically for ${lead.name} that solves this friction:
-• It features: ${currentProp.structure.map(s => s.sectionName).slice(0, 3).join(', ')}.
-• Integrated CTA: "${currentProp.selectedCta}".
-• Expected Outcome: This typically streamlines customer onboarding and recaptures significant booking revenue.
-
-I have a quick graphic concept of this mockup ready to share. Would you be open to a 2-minute screenshot review of how this looks?
-
-Best regards,
-
-Sales Intelligence Partner`;
-
-  const linkedin = `Hi ${leadNameClean} team! Saw your stellar ${ratingText} and love the customer care you provide. Since you handle scheduling manually, I custom-designed an interactive patient/client scheduler website concept specifically for your category to capture more organic searches automatically. Happy to share a 2-minute screenshot mockup of the custom wireframe layout with you? Let's connect!`;
-
-  const whatsapp = `Hello ${leadNameClean} team! 👋 Saw you has amazing local reviews (${ratingText})! I noticed you are currently taking bookings manually via WhatsApp. I actually put together a professional website & calendar booking layout specifically designed to automate client signups for ${lead.name}! Would you like me to send over the visual preview mockups for free? let me know!`;
-
-  return {
-    email,
-    linkedin,
-    whatsapp
-  };
-}
-
-// CRM Endpoints
-app.get('/api/crm/leads', (req, res) => {
-  res.json(leadsDatabase);
-});
-
-app.post('/api/crm/leads', (req, res) => {
-  const newLead: Lead = {
-    ...req.body,
-    id: req.body.id || `lead-crm-${Date.now()}`,
-    status: req.body.status || 'new',
-    createdAt: req.body.createdAt || new Date().toISOString(),
-    notes: req.body.notes || 'Saved from search results.',
-    tags: req.body.tags || []
-  };
-
-  // Prevent duplicates
-  const exists = leadsDatabase.some(l => l.name === newLead.name && l.address === newLead.address);
-  if (exists) {
-    return res.status(400).json({ error: "Lead already exists in your CRM Pipeline." });
-  }
-
-  leadsDatabase.push(newLead);
-  saveDatabase();
-
-  // Broadcast the new lead to all clients in real-time
-  broadcast({ type: 'lead_created', lead: newLead });
-
-  res.status(201).json(newLead);
-});
-
-app.put('/api/crm/leads/:id', (req, res) => {
-  const { id } = req.params;
-  const leadIndex = leadsDatabase.findIndex(l => l.id === id);
-  if (leadIndex === -1) {
-    return res.status(404).json({ error: "Lead not found in CRM database." });
-  }
-
-  leadsDatabase[leadIndex] = {
-    ...leadsDatabase[leadIndex],
-    ...req.body
-  };
-
-  saveDatabase();
-
-  // Broadcast the updated lead to all clients in real-time
-  broadcast({ type: 'lead_updated', lead: leadsDatabase[leadIndex] });
-
-  res.json(leadsDatabase[leadIndex]);
-});
-
-app.delete('/api/crm/leads/:id', (req, res) => {
-  const { id } = req.params;
-  const leadIndex = leadsDatabase.findIndex(l => l.id === id);
-  if (leadIndex === -1) {
-    return res.status(404).json({ error: "Lead not found." });
-  }
-
-  leadsDatabase.splice(leadIndex, 1);
-  saveDatabase();
-
-  // Broadcast the deletion event to all clients in real-time
-  broadcast({ type: 'lead_deleted', id });
-
-  res.json({ success: true, message: "Lead removed from pipeline successfully." });
-});
-
-app.get('/api/crm/stats', (req, res) => {
-  const total = leadsDatabase.length;
-  const noWebsite = leadsDatabase.filter(l => !l.website).length;
-  const contacted = leadsDatabase.filter(l => l.status !== 'new').length;
-  const replied = leadsDatabase.filter(l => l.status === 'replied' || l.status === 'interested' || l.status === 'closed').length;
-  const meeting = leadsDatabase.filter(l => l.status === 'interested' || l.status === 'closed').length;
-  
-  // Custom estimated conversion math
-  const closedCount = leadsDatabase.filter(l => l.status === 'closed').length;
-  const conversionRate = total > 0 ? Math.round((closedCount / total) * 100) : 0;
-  
-  // Pipeline estimated revenue based on service types:
-  // web_design = GH₵/₦/$ 1,500 average, ai_automation = 2,500 average, hybrid = 4,000 progress
-  const revenue = leadsDatabase.reduce((acc, lead) => {
-    if (lead.status === 'closed') {
-      const value = lead.serviceType === 'web_design' ? 1500 : lead.serviceType === 'ai_automation' ? 2500 : 4000;
-      return acc + value;
-    } else if (lead.status === 'interested') {
-      const value = (lead.serviceType === 'web_design' ? 1500 : lead.serviceType === 'ai_automation' ? 2500 : 4000) * 0.5; // weighted
-      return acc + value;
-    }
-    return acc;
-  }, 0);
-
-  res.json({
-    totalLeads: total,
-    noWebsite,
-    contactedLeads: contacted,
-    repliesReceived: replied,
-    meetingsBooked: meeting,
-    conversionRate,
-    estimatedPipelineRevenue: revenue
-  });
-});
-
-// Search API utilizing Gemini Search Grounding
-app.post('/api/leads/search', async (req, res) => {
-  const { query, location } = req.body;
-  const fullSearchQuery = location ? `${query} in ${location}` : query;
-  
-  if (!query) {
-    return res.status(400).json({ error: "Search query string is required" });
-  }
-
-  console.log(`Processing lead discovery query in search gateway: "${fullSearchQuery}"`);
-  
+// REST Endpoints
+app.get('/api/market-pulse', async (req, res) => {
   const client = getGeminiClient();
   if (!client) {
-    // Safe fallback mode
-    const fallbacks = getRealisticFallbacks(fullSearchQuery);
-    return res.json({ 
-      leads: fallbacks, 
-      isFallback: true, 
-      notice: "Simulated response: set GEMINI_API_KEY for live sales grounding feeds." 
-    });
-  }
-
-  try {
-    const systemPrompt = `You are an expert sales discovery intelligence scraper.
-Given the target search: "${fullSearchQuery}", perform a live web search using Google Search tools.
-Locate exactly 4 to 5 REAL local business entities matching the query.
-Determine if they have an active website or not. If they do not, note "website": null.
-Compute a realistic Digital Presence Score from 0 to 100 (where having a great website + ratings = 85+, and no website = 25-45).
-Identify key tags like 'No Website', 'Facebook relying', 'WhatsApp booking', etc.
-Return a STRICT valid JSON array enclosing ONLY the matching businesses. Make sure coordinates (latitude/longitude) are realistic numerical values.
-No conversational wrapper text. Do not return markdown except inside markdown response code scopes if required, but with responseMimeType: "application/json" you must return RAW clean JSON array.`;
-
-    const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: systemPrompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              name: { type: Type.STRING },
-              category: { type: Type.STRING },
-              phone: { type: Type.STRING },
-              address: { type: Type.STRING },
-              rating: { type: Type.NUMBER },
-              reviewsCount: { type: Type.INTEGER },
-              website: { type: Type.STRING },
-              mapsUrl: { type: Type.STRING },
-              latitude: { type: Type.NUMBER },
-              longitude: { type: Type.NUMBER },
-              digitalPresenceScore: { type: Type.INTEGER },
-              serviceType: { type: Type.STRING },
-              tags: { type: Type.ARRAY, items: { type: Type.STRING } }
-            },
-            required: ["name", "category", "address", "digitalPresenceScore", "serviceType", "tags"]
-          }
-        }
+    // Return realistic highly detailed fallback news
+    const fallbacks = [
+      {
+        id: "fb-1",
+        title: "CBN Retains Lending Stance; Cash Reserve Ratios Pressed At 26.25%",
+        source: "Nairametrics",
+        summary: "The Central Bank of Nigeria held its key lending interest rate steady in its latest session to curb liquidity levels and stabilize currency pressures.",
+        impact: "Slight restriction. Banks like GTCO retain elevated double-digit treasury interest yields, while private mortgage yields tighten.",
+        url: "https://nairametrics.com",
+        time: "10m ago"
+      },
+      {
+        id: "fb-2",
+        title: "Global Datacenters Drive High Demand Waves for AI GPU Accelerators",
+        source: "Bloomberg",
+        summary: "Tech leaders expand multi-billion dollar datacloud compute centers to capture deep-learning trends, boosting chip pre-orders.",
+        impact: "Bullish for Nvidia (NVDA). High-volume forward bookings secure robust premium revenue streams across upcoming quarters.",
+        url: "https://bloomberg.com",
+        time: "32m ago"
+      },
+      {
+        id: "fb-3",
+        title: "Bitcoin Consolidates Cleanly Inside Sovereign $68,000 Support Nodes",
+        source: "CoinDesk",
+        summary: "Short-term leverage accounts clear out while regulated pension funds report continuous inflows within Spot ETF asset lines.",
+        impact: "Healthy range accumulation phase. Keeps deep support levels sound while minimizing speculative leverage bubbles.",
+        url: "https://www.coindesk.com",
+        time: "1h ago"
+      },
+      {
+        id: "fb-4",
+        title: "NGX Group Secures Approvals For Digital Equities Tokenization Trial",
+        source: "BusinessDay NG",
+        summary: "The Nigerian Exchange Group expands regulatory capabilities to experiment with private asset syndication on secure cloud ledgers.",
+        impact: "Increases liquidity flexibility. Simplifies micro-capital pooling routes for young tech firms seeking retail options.",
+        url: "https://businessday.ng",
+        time: "2h ago"
       }
-    });
-
-    const text = response.text;
-    if (text) {
-      const parsedLeads = JSON.parse(text.trim());
-      // Append generated ID and creation time
-      const finalLeads = parsedLeads.map((item: any, index: number) => ({
-        ...item,
-        id: `lead-found-${index}-${Date.now()}`,
-        status: 'new',
-        createdAt: new Date().toISOString(),
-        notes: item.website ? "Identified older digital framework. Recommend interactive automated chatbots." : "Zero website presence discovered. High potential web design design offer target.",
-        phone: item.phone || null,
-        rating: item.rating || null,
-        reviewsCount: item.reviewsCount || null,
-        website: item.website || null,
-        mapsUrl: item.mapsUrl || `https://maps.google.com/?q=${encodeURIComponent(item.name + " " + (location || ''))}`,
-        latitude: item.latitude || 5.55 + (Math.random() - 0.5) * 0.04,
-        longitude: item.longitude || -0.20 + (Math.random() - 0.5) * 0.04
-      }));
-      return res.json({ leads: finalLeads, isFallback: false });
-    }
-  } catch (error) {
-    console.warn("Gemini grounding failure. Scaling to high-grade fallbacks.", error);
-  }
-
-  // Final graceful fallback if anything goes wrong (such as 429 quota exhaustion)
-  const fallbacks = getRealisticFallbacks(fullSearchQuery);
-  res.json({ 
-    leads: fallbacks, 
-    isFallback: true, 
-    notice: "Standard Search quota limit hit. Seamlessly scaled to local High-Grade Offline Intelligence." 
-  });
-});
-
-// Deep AI CRM Business Analyzer API
-app.post('/api/leads/analyze', async (req, res) => {
-  const { lead } = req.body as { lead: Lead };
-  if (!lead) return res.status(400).json({ error: "Target lead data is required." });
-
-  console.log(`Deep-analyzing business profile: "${lead.name}"`);
-
-  const client = getGeminiClient();
-  if (!client) {
-    // Generate high-fidelity simulated analysis structure
-    const mockAnalysis = getDynamicAnalysis(lead);
-    return res.json({ 
-      analysis: mockAnalysis, 
-      isFallback: true, 
-      fallbackReason: "Offline Mode Active" 
-    });
+    ];
+    return res.json({ headlines: fallbacks, grounded: false });
   }
 
   try {
-    const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: `Provide a detailed Business Summary, Digital Presence Analysis, and Operational pain point breakdown for the following business:
-Name: ${lead.name}
-Category: ${lead.category}
-Phone: ${lead.phone || 'N/A'}
-Address: ${lead.address}
-Website: ${lead.website || 'None'}
-Global Rating: ${lead.rating || 'N/A'} (Reviews: ${lead.reviewsCount || 0})
+    const prompt = `Search the web for the absolute latest breaking financial news, bank earnings, crypto movements, or macroeconomic updates specifically regarding Nigerian financial markets (NGX equities like GTCO, MTNN, Oando, Zenith Bank) and global crypto and tech indicators.
+Select the top 4 most critical updates occurring right now.
 
-Map out:
-1. Short 2-sentence summary of what the business does.
-2. Digital presence summaries and categorized strength ("low", "medium", or "high").
-3. A list of 3 specific operational pain points (e.g. manual calendar booking, WhatsApp-based receptionists bottlenecking, lack of follow-up).
-4. List of 3 systems or tools needed (e.g., custom client booking portal, reviews aggregator).
-5. 2 custom AI opportunity recommendations (e.g., WhatsApp AI bots, smart invoice triggers).
-6. A digital maturity score (integer 0 to 100).
-Return STRICT JSON matching the BusinessAnalysis structure.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            summary: { type: Type.STRING },
-            digitalPresenceSummary: { type: Type.STRING },
-            presenceStrength: { type: Type.STRING, enum: ["low", "medium", "high"] },
-            operationalPainPoints: { type: Type.ARRAY, items: { type: Type.STRING } },
-            systemsNeeded: { type: Type.ARRAY, items: { type: Type.STRING } },
-            aiOpportunities: { type: Type.ARRAY, items: { type: Type.STRING } },
-            digitalMaturityScore: { type: Type.INTEGER }
-          },
-          required: ["summary", "digitalPresenceSummary", "presenceStrength", "operationalPainPoints", "systemsNeeded", "aiOpportunities", "digitalMaturityScore"]
-        }
-      }
-    });
-
-    if (response.text) {
-      return res.json({ analysis: JSON.parse(response.text.trim()), isFallback: false });
+Respond STRICTLY with a JSON object containing a "headlines" array of 4 items.
+For each headline, extract the source name, bulleted summary, localized investing impact, published time (e.g., "12m ago" or "1h ago"), and the original source URL.
+Schema:
+{
+  "headlines": [
+    {
+      "id": "string",
+      "title": "string",
+      "source": "string",
+      "summary": "string",
+      "impact": "string",
+      "url": "string (must be a valid URL related to the article)",
+      "time": "string"
     }
-  } catch (error) {
-    console.warn("Gemini analyze failed. Returning high-grade backup fallback.", error);
-  }
-
-  // Graceful fallback for quota / model exceptions
-  const mockAnalysis = getDynamicAnalysis(lead);
-  res.json({ 
-    analysis: mockAnalysis, 
-    isFallback: true, 
-    fallbackReason: "Gemini API Quota Exceeded. Load high-grade simulated analysis content." 
-  });
-});
-
-// Web Design Opportunity Proposal Generator API
-app.post('/api/leads/propose', async (req, res) => {
-  const { lead, analysis } = req.body as { lead: Lead, analysis: BusinessAnalysis };
-  if (!lead) return res.status(400).json({ error: "Target lead data is required." });
-
-  console.log(`Creating custom Web Design Proposal for: "${lead.name}"`);
-
-  const client = getGeminiClient();
-  if (!client) {
-    // Elegant fallbacks
-    const mockProposal = getDynamicProposal(lead, analysis);
-    return res.json({ proposal: mockProposal, isFallback: true });
-  }
-
-  try {
-    const systemPrompt = `You are an expert sales design strategist.
-Generate a tailored Web Design Proposition for:
-Name: ${lead.name}
-Category: ${lead.category}
-Website Status: ${lead.website || 'No website found'}
-Summary of Gaps: ${analysis?.digitalPresenceSummary || 'No existing website or poor interactive elements.'}
-
-Prepare:
-1. needDetectedReason (summarize why they urgently need a site)
-2. suggestedType (e.g., 'Booking Site', 'Corporate Lead Engine', 'E-commerce platform')
-3. structure (array of 4 key pages/sections, with sectionName, purpose, and contentHint)
-4. heroHeadline (compelling copy)
-5. heroSubheadline (compelling copy)
-6. selectedCta (converting CTA button label)
-7. estimatedValue (monetizable monthly impact score, e.g. "GH₵ 8,000/mo in scheduling slots" or "$2,000/mo recaptured")
-8. readyToSellOffer (A concise and convincing pitch offer that the CRM operator can paste)
-Return STRICT valid JSON matching the WebDesignProposal structure.`;
-
-    const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: systemPrompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            needDetectedReason: { type: Type.STRING },
-            suggestedType: { type: Type.STRING },
-            structure: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  sectionName: { type: Type.STRING },
-                  purpose: { type: Type.STRING },
-                  contentHint: { type: Type.STRING }
-                },
-                required: ["sectionName", "purpose", "contentHint"]
-              }
-            },
-            heroHeadline: { type: Type.STRING },
-            heroSubheadline: { type: Type.STRING },
-            selectedCta: { type: Type.STRING },
-            estimatedValue: { type: Type.STRING },
-            readyToSellOffer: { type: Type.STRING }
-          },
-          required: ["needDetectedReason", "suggestedType", "structure", "heroHeadline", "heroSubheadline", "selectedCta", "estimatedValue", "readyToSellOffer"]
-        }
-      }
-    });
-
-    if (response.text) {
-      return res.json({ proposal: JSON.parse(response.text.trim()), isFallback: false });
-    }
-  } catch (err) {
-    console.warn("Propose Gemini failed. Rendering high-grade offline backup.", err);
-  }
-
-  // Graceful backup fallback
-  const mockProposal = getDynamicProposal(lead, analysis);
-  res.json({ proposal: mockProposal, isFallback: true });
-});
-
-// Pitch Copy Generator
-app.post('/api/leads/pitch', async (req, res) => {
-  const { lead, analysis, proposal } = req.body as { lead: Lead, analysis: BusinessAnalysis, proposal?: WebDesignProposal };
-  if (!lead) return res.status(400).json({ error: "Target lead data is required." });
-
-  console.log(`Generating pitch copy for: "${lead.name}"`);
-
-  const client = getGeminiClient();
-  if (!client) {
-    const pitch = getDynamicPitch(lead, analysis, proposal);
-    return res.json({ pitch, isFallback: true });
-  }
-
-  try {
-    const systemPrompt = `You are a high-tier cold consulting specialist.
-Write three hyper-effective, personalized outreach pitches (Email, LinkedIn message, WhatsApp message) for:
-Business: ${lead.name}
-Category: ${lead.category}
-Contact Number: ${lead.phone || 'N/A'}
-Website Status: ${lead.website ? 'Legacy website exists at ' + lead.website : 'No website found'}
-Critical Paint Point: ${analysis?.operationalPainPoints?.[0] || 'Manual booking intake'}
-Suggested Offer: ${proposal?.readyToSellOffer || 'Responsive booking web portal'}
-
-Ensure:
-1. They are brief, respectful of business owners' time, and highly outcome-oriented.
-2. Direct references to local community reviews or ratings.
-3. No fluffy marketing, zero mass-spam feel. Speak like a local software freelancer / agency peer.
-Return STRICT valid JSON matching OutreachPitch structure.`;
-
-    const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: systemPrompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            email: { type: Type.STRING, description: "With subject line and spaced paragraphs" },
-            linkedin: { type: Type.STRING, description: "Short, direct hook message" },
-            whatsapp: { type: Type.STRING, description: "Friendly, casual introductory message with emojis" }
-          },
-          required: ["email", "linkedin", "whatsapp"]
-        }
-      }
-    });
-
-    if (response.text) {
-      return res.json({ pitch: JSON.parse(response.text.trim()), isFallback: false });
-    }
-  } catch (err) {
-    console.warn("Pitch copy generation failed. Rendering premium backup copywriting.", err);
-  }
-
-  // Graceful backup fallback
-  const pitch = getDynamicPitch(lead, analysis, proposal);
-  res.json({ pitch, isFallback: true });
-});
-
-// Follow-up Generator
-app.post('/api/leads/followup', async (req, res) => {
-  const { lead, previousStatus, attempt } = req.body;
-  if (!lead) return res.status(400).json({ error: "Lead is required." });
-
-  const client = getGeminiClient();
-  const attemptNum = attempt || 1;
-
-  const getMockFollowup = () => {
-    return {
-      message: `Hi ${(lead.name || 'there').replace(/[&\/\\#,+()$~%.'":*?<>{}]/g, '')} team! 👋 Just following up on my previous note. I know you're busy serving customers. I wanted to see if you had 2 minutes to look at the quick interactive online calendar template I custom-made for your ${lead.category || 'business'} services. It would let clients self-book directly. Would you be open to reviewing it tomorrow?`
-    };
-  };
-
-  if (!client) {
-    return res.json({ ...getMockFollowup(), isFallback: true });
-  }
-
-  try {
-    const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: `Create a follow-up outreach message (Attempt #${attemptNum}) for the business "${lead.name}" (${lead.category}).
-Previous history: They were contacted with a web design or automation proposal but have not responded yet.
-Keep it extremely polite, human, low-pressure, and high value. Focus on solving booking friction and saving time.
-Return a simple JSON enclosing a "message" string property.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            message: { type: Type.STRING }
-          },
-          required: ["message"]
-        }
-      }
-    });
-    if (response.text) {
-      return res.json({ ...JSON.parse(response.text.trim()), isFallback: false });
-    }
-  } catch (err) {
-    console.warn("Follow up generation failed. Returning mock.", err);
-  }
-
-  res.json({ ...getMockFollowup(), isFallback: true });
-});
-
-// AI CRM Lead Status Summarizer endpoint
-app.post('/api/crm/leads/:id/summarize', async (req, res) => {
-  const { id } = req.params;
-  const lead = leadsDatabase.find(l => l.id === id);
-  if (!lead) {
-    return res.status(404).json({ error: "Lead not found" });
-  }
-
-  const client = getGeminiClient();
-
-  const getFallbackSummary = () => {
-    return {
-      summary: `• **Stage Analysis**: Currently staged in "${lead.status.toUpperCase()}" with a digital health score of ${lead.digitalPresenceScore}%.\n• **Pain Points**: ${lead.website ? 'Legacy website active' : 'Has no website listed'} with notes: "${lead.notes}".\n• **Action Proposal**: Re-initiate contact to address specific delivery, intake or layout conversion optimizations.`
-    };
-  };
-
-  if (!client) {
-    return res.json({ ...getFallbackSummary(), isFallback: true });
-  }
-
-  try {
-    const prompt = `You are a high-performance CRM intelligence optimizer.
-Generate a concise, elite AI summary (maximum 3 bullet points, friendly but highly professional sales-focused tone) analyzing the current CRM status and recent notes of this lead. Do not include introductory text, start directly with the first bullet point. Use markdown formatting.
-
-Lead Name: ${lead.name}
-Category: ${lead.category}
-Current Pipeline Stage: ${lead.status}
-Service Type: ${lead.serviceType}
-Digital Presence Score: ${lead.digitalPresenceScore}%
-Lead Notes & Progress History: ${lead.notes}
-
-Structure your response with:
-1. Current status assessment.
-2. Summary of key bottlenecks / progress signals described in the notes or presence score.
-3. Recommended immediate high-conversion next action.
-
-Return a simple JSON enclosing a "summary" string property (with nice markdown bullets inside).`;
+  ]
+}`;
 
     const response = await client.models.generateContent({
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            summary: { type: Type.STRING }
-          },
-          required: ["summary"]
-        }
+        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json"
       }
     });
 
-    if (response.text) {
-      return res.json({ ...JSON.parse(response.text.trim()), isFallback: false });
+    try {
+      const parsed = JSON.parse(response.text.trim());
+      const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+      const headlinesWithUrls = parsed.headlines.map((item: any, idx: number) => {
+        let finalUrl = item.url;
+        if (!finalUrl || !finalUrl.startsWith('http')) {
+          const chunk = chunks[idx % chunks.length];
+          if (chunk?.web?.uri) {
+            finalUrl = chunk.web.uri;
+          } else {
+            finalUrl = 'https://nairametrics.com';
+          }
+        }
+        return {
+          ...item,
+          url: finalUrl
+        };
+      });
+      res.json({ headlines: headlinesWithUrls, grounded: true });
+    } catch {
+      let cleaned = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+      res.json({ headlines: parsed.headlines, grounded: true });
     }
-  } catch (err) {
-    console.warn("CRM Lead status summary generation failed. Returning simulation summary.", err);
+  } catch (error: any) {
+    console.error("Breaking pulse call failed:", error);
+    res.status(500).json({ error: "Failed to generate market pulse" });
   }
-
-  res.json({ ...getFallbackSummary(), isFallback: true });
 });
 
+app.get('/api/historical', (req, res) => {
+  const ticker = (req.query.ticker as string || 'btc').toLowerCase();
+  const timeframe = (req.query.timeframe as string || '1d').toLowerCase();
 
-// AI Copilot Interactive Chat Endpoint
-app.post('/api/copilot/chat', async (req, res) => {
-  const { messages } = req.body;
-  if (!messages || !Array.isArray(messages)) {
-    return res.status(400).json({ error: "Chat messages array is required." });
+  let basePrice = 45;
+  let volatility = 0.02;
+  let pointsCount = 12;
+
+  if (ticker === 'btc' || ticker === 'btc/usd') {
+    basePrice = 65000;
+    volatility = 0.012;
+  } else if (ticker === 'gtco') {
+    basePrice = 44.5;
+    volatility = 0.009;
+  } else if (ticker === 'zenith' || ticker === 'zenithbank') {
+    basePrice = 38.2;
+    volatility = 0.008;
   }
 
-  const client = getGeminiClient();
+  if (timeframe === '1d') {
+    pointsCount = 12;
+  } else if (timeframe === '1w') {
+    pointsCount = 7;
+    volatility = volatility * 1.8;
+  } else if (timeframe === '1m') {
+    pointsCount = 30;
+    volatility = volatility * 3.5;
+  }
 
-  const getFallbackReply = () => {
-    const lastMsg = messages[messages.length - 1]?.content || "";
-    const msgLower = lastMsg.toLowerCase();
-    let reply = "Yo, I'm Bishop! Ask me anything about how this five-agent mesh coordinates, custom USSD platforms, West African telecom APIs, or how the site workspace memory keeps your B2B leads safe.";
+  // Generate deterministic progression with a bit of noise to prevent extreme erratic behavior
+  const data = [];
+  let currentPrice = basePrice * (1 - volatility * (pointsCount / 2) * 0.15); // start slightly lower
+
+  for (let i = 0; i < pointsCount; i++) {
+    const progressTrend = (i / pointsCount) * (basePrice * volatility * 0.4);
+    const sineFactor = Math.sin((i / pointsCount) * Math.PI * 2) * (basePrice * volatility * 0.25);
+    const pseudoRandom = Math.sin(i * 9821.5 + ticker.charCodeAt(0)) * (basePrice * volatility * 0.12);
     
-    if (msgLower.includes("mesh") || msgLower.includes("agent") || msgLower.includes("coordinate") || msgLower.includes("five") || msgLower.includes("co-ordinate")) {
-      reply = `### 🤖 Bishop's Five-Agent Mesh Coordination\n\nI architected this Hub to self-coordinate using five specialized operation nodes:\n\n1. **Discovery Agent**: Crawls real Google business indexes in local cities (Accra, Lagos, London, Kumasi) to identify raw web presence gaps and score "Maturity."\n2. **CRM Pipeline**: A visual Kanban board facilitating workflow transitions (Contacted, Pitch Sent, Rebuttals, Won) and projecting portfolio deal values.\n3. **Video Launch Creator**: Dynamically loads customized 20-second pitches to display exactly what is missing on mobile and desktop.\n4. **Sales Copilot**: Bishop (me!) supplying real-time strategy tips and integration answers.\n5. **Metrics Dashboard**: Evaluating live statistics, average digital scores, and contract closing rate telemetry securely.`;
-    } else if (msgLower.includes("ussd") || msgLower.includes("offline") || msgLower.includes("shortcode") || msgLower.includes("talking") || msgLower.includes("hubtel") || msgLower.includes("arkesel")) {
-      reply = `### 📞 Offline USSD Platform Integrations\n\nFor West African B2B businesses, offline reachability is critical for capturing users without internet access. Here is the implementation flow:\n\n1. **Aggregators**: Register with **Africa's Talking**, **Hubtel**, or **Arkesel**.\n2. **Shared Short Codes**: Map a unique dial path (e.g. \`*714#\`) and configure your callback URL.\n3. **Session Handlers**: When a user dials the shortcode, the aggregator sends an HTTP POST request to our webhook. We reply with plain-text menu choices (e.g., \`CON Choose 1 to Book a Private Dental Visit\`).\n4. **Lead Syncing**: Successful bookings push straight into our client database.`;
-    } else if (msgLower.includes("telecom") || msgLower.includes("momo") || msgLower.includes("money") || msgLower.includes("api") || msgLower.includes("payment")) {
-      reply = `### 💳 West African Telecom & Mobile Money APIs\n\nIntegrating payment systems directly into your clients' sites is a perfect way to upsell them. Here is how I hook them up:\n\n1. **MTN MoMo API**: Integrate with MTN's sandbox or production collections gateway using their HTTP headers (including Client IDs and API Keys).\n2. **Telecel Cash & Orange Money**: Use a payment aggregator (e.g., **Paystack**, **Flutterwave**, or **Hubtel**) to manage unified card and MoMo transactions with a single unified SDK.\n3. **Webhooks Setup**: Configure secure callbacks to automatically update custom CRM leads to "Closed Won" status immediately on successful payment processing.`;
-    } else if (msgLower.includes("memory") || msgLower.includes("persistence") || msgLower.includes("save") || msgLower.includes("lose")) {
-      reply = `### 💾 Hub Site Memory & Local State\n\n1. **Local Storage Engine**: Pipeline leads you capture, custom presets you configure, and manual column transitions are auto-persisted directly in the local browser database.\n2. **State Synchronization**: Re-verifying column states and re-accessing cached presets remains automatic even if your server restarts, meaning zero loss of simulated acquisition runs.`;
-    }
-    return { content: reply };
-  };
+    const value = Number((currentPrice + progressTrend + sineFactor + pseudoRandom).toFixed(2));
+    data.push({ value });
+  }
 
+  res.json({ ticker, timeframe, data });
+});
+
+app.get('/api/assets', (req, res) => {
+  res.json(sgtShowDb.assets);
+});
+
+app.get('/api/assets/:id', (req, res) => {
+  const asset = sgtShowDb.assets.find(a => a.id === req.params.id);
+  if (!asset) return res.status(404).json({ error: "Asset not found" });
+  res.json(asset);
+});
+
+app.post('/api/assets/:id/ai-analysis', async (req, res) => {
+  const asset = sgtShowDb.assets.find(a => a.id === req.params.id);
+  if (!asset) return res.status(404).json({ error: "Asset not found" });
+
+  const client = getGeminiClient();
   if (!client) {
-    return res.json({ ...getFallbackReply(), isFallback: true });
+    // Elegant Offline simulated analyst explanation
+    const simulatedResponse = `### 🧠 Sgt Show AI Copilot Report: ${asset.ticker} (${asset.name})
+
+We ran a simulated structural review on **${asset.ticker}** for African retail portfolios:
+
+1. **Why it Matters:** ${asset.type === 'crypto' ? 'A major global digital commodity asset.' : 'An extremely systemic enterprise block listed on ' + asset.market.toUpperCase()}.
+2. **Current Retail Stance:** The market sentiment is **${asset.sentiment.toUpperCase()}**. 
+3. **Core Catalyst:** Standard domestic currency adjustments, retail accumulation cycles, and strong cash generation margins.
+   
+*Note: Connect your Gemini API Key in AI Studio > Settings > Secrets to unlock live Google Search grounding feeds for this security!*`;
+
+    return res.json({ analysis: simulatedResponse });
   }
 
   try {
-    const systemInstruction = `You are "Bishop", the expert developer, system architect, and assistant built into the Client Hunter platform.
-You reside in your customized Workspace. You are knowledgeable, laid back, friendly, creative, and professional. Use phrases like "Yo,", but remain highly analytical about system configurations, telecom software, and lead acquisition pipelines.
-
-Your knowledge base includes:
-1. "Five-Agent Mesh" Coordination inside this "Client Hunter Hub":
-   - **Discovery Agent**: Google Search integration matching queries (e.g. dentist, gym, clinic) across hubs like Accra, Lagos, London, or Kumasi. Scores digital "Maturity" out of 100 pointing out offline or web-absent niches.
-   - **CRM Agent**: Visual Kanban column transitioning of potential leads (Contacted, Pitch Sent, Rebuttals, Won), projection tracking, and bulk CSV ingestion.
-   - **Launch Video Creator**: Instant tailored interactive pitch video previews based on the B2B client's maturity deficiency.
-   - **Sales Copilot (You)**: Bishop serving voice-guided pitches, telecom tools, and objections support.
-   - **Metrics Tracker**: Live telemetry reporting won margins, SEO coverage, and CRM volume.
-2. USSD Platforms:
-   - Deep expertise in West African offline integrations like Africa's Talking, Hubtel, or Arkesel.
-   - Explaining how to build a basic menu structure (e.g., dial code like *714*10#) to allow local customers without internet access or smartphones to book private clinical visits, request dental triage, or book hotel space.
-3. West African Telecom APIs:
-   - MTN Mobile Money (MoMo), Telecel Cash (formerly Vodafone Cash), AirtelTigo Cash, and Orange Money integrations.
-   - Using payments API webhooks to auto-validate transactions on client website platforms.
-4. Local Site Memory:
-   - How the site state stays intact using secure local key-value state persistence engines inside the user's local workspace.
-
-Rules for response:
-- Introduce yourself clearly as "Bishop" if the user greets you or asks who you are.
-- Answer in structured, highly legible markdown with standard bullet lines.
-- Keep answers insightful, warm, objective, and highly action-oriented.
-- Keep responses within 2-3 concise paragraphs so they read out smoothly via vocal synthesizers.`;
-
-    const chatHistory = messages.map((m: any) => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.content }]
-    }));
-
-    // Generate output utilizing gemini-3.5-flash
     const response = await client.models.generateContent({
       model: "gemini-3.5-flash",
-      contents: chatHistory,
+      contents: `You are the premium 'Sgt Show AI Investing assistant' specialized in African and multi-market investing.
+Provide a clear, conversational, beginner-friendly breakout for retail investors of the asset: ${asset.name} (${asset.ticker}) currently trading on the ${asset.market.toUpperCase()} market.
+Structure your assessment into:
+1. "The Core Catalyst" (What is driving the recent sentiment simply)
+2. "Why Beginners Should Watch It" (Simplified terms)
+3. "Actionable Insight" (No financial trading advice, just how retail should understand its cycle)
+Keep it conversational, inspiring, clear, and highly localized for an active Nigerian / African retail trader.`,
       config: {
-        systemInstruction,
-        temperature: 0.7
+        tools: [{ googleSearch: {} }] // Live search grounding enabled!
       }
     });
 
-    if (response.text) {
-      return res.json({ content: response.text.trim(), isFallback: false });
-    }
-  } catch (err) {
-    console.warn("Copilot chat Gemini call failed, falling back gracefully.", err);
+    res.json({ analysis: response.text });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || "Failed calling Gemini AI assistant" });
   }
-
-  res.json({ ...getFallbackReply(), isFallback: true });
 });
 
+app.get('/api/insights', (req, res) => {
+  res.json(sgtShowDb.insights);
+});
 
-// Serve React application assets
+app.post('/api/insights', (req, res) => {
+  const { content, sentiment, relatedAssets } = req.body;
+  const newInsight: SgtShowInsight = {
+    id: `ins-${Date.now()}`,
+    content,
+    sentiment: sentiment || 'neutral',
+    aiSummary: `AI Breakout: ${content.slice(0, 100)}...`, // Placeholder, standard fallback
+    createdAt: new Date().toISOString(),
+    assets: relatedAssets || []
+  };
+
+  // Run server-side Gemini to summarize the Sgt Show Twitter card instantly!
+  const client = getGeminiClient();
+  if (client) {
+    client.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: `You are 'Sgt Show' invest editor. Summarize this tweet into a pristine, high-impact retail takeaway: "${content}"`
+    }).then(res => {
+      newInsight.aiSummary = res.text;
+      saveDb();
+      broadcast({ type: 'insight_added', insight: newInsight });
+    }).catch(e => console.error("Async tweet summary fail:", e));
+  }
+
+  sgtShowDb.insights.unshift(newInsight);
+  saveDb();
+  broadcast({ type: 'insight_added', insight: newInsight });
+  res.status(201).json(newInsight);
+});
+
+app.get('/api/discussions', (req, res) => {
+  res.json(sgtShowDb.discussions);
+});
+
+app.post('/api/discussions', (req, res) => {
+  const { sector, title, content, authorName, authorEmail, assetId, userReaction } = req.body;
+  const newPost: DiscussionPost = {
+    id: `disc-${Date.now()}`,
+    assetId,
+    sector: sector || 'general',
+    title,
+    content,
+    authorName: authorName || "Community Member",
+    authorEmail: authorEmail || "guest@sgtshow.com",
+    reactions: { bullish: userReaction === 'bullish' ? 1 : 0, bearish: userReaction === 'bearish' ? 1 : 0, neutral: userReaction === 'neutral' ? 1 : 0 },
+    comments: [],
+    createdAt: new Date().toISOString(),
+    aiSummary: "Simplifying discussion..."
+  };
+
+  // Run background Gemini to summarize the community thread automatically!
+  const client = getGeminiClient();
+  if (client) {
+    client.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: `Synthesize this discussion topic inside Sgt Show's investing forum.
+Title: "${title}"
+Content: "${content}"
+Give a 1-sentence smart community sentiment takeaway (e.g. "Community is highly curious but divided about...")`
+    }).then(res => {
+      newPost.aiSummary = res.text;
+      saveDb();
+      broadcast({ type: 'discussion_added', post: newPost });
+    }).catch(e => console.error("Discussion summary failed:", e));
+  } else {
+    newPost.aiSummary = `Active forum topic in ${sector?.toUpperCase()} sector. Join the discussion to add sentiment weight.`;
+  }
+
+  sgtShowDb.discussions.unshift(newPost);
+  saveDb();
+  broadcast({ type: 'discussion_added', post: newPost });
+  res.status(201).json(newPost);
+});
+
+app.post('/api/discussions/:id/comments', (req, res) => {
+  const { id } = req.params;
+  const { content, authorName, authorEmail, reaction } = req.body;
+  
+  const post = sgtShowDb.discussions.find(p => p.id === id);
+  if (!post) return res.status(404).json({ error: "Post not found" });
+
+  const newComment = {
+    id: `com-${Date.now()}`,
+    postId: id,
+    content,
+    authorName: authorName || "Trader",
+    authorEmail: authorEmail || "guest@sgtshow.com",
+    reaction: reaction || null,
+    createdAt: new Date().toISOString()
+  };
+
+  post.comments.push(newComment);
+  
+  if (reaction === 'bullish') post.reactions.bullish++;
+  else if (reaction === 'bearish') post.reactions.bearish++;
+  else if (reaction === 'neutral') post.reactions.neutral++;
+
+  // Trigger Gemini summary update for comments!
+  const client = getGeminiClient();
+  if (client) {
+    const threadData = `Thread: "${post.title}". Comments count: ${post.comments.length}. Comments: ${post.comments.map(c => c.content).join(' | ')}`;
+    client.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: `Summarize the collective sentiment outlook of this investment thread. Keep it under 2 sentences.
+Data: ${threadData}`
+    }).then(res => {
+      post.aiSummary = res.text;
+      saveDb();
+      broadcast({ type: 'discussion_updated', post });
+    }).catch(e => console.error("Comments summary update failed:", e));
+  }
+
+  saveDb();
+  broadcast({ type: 'discussion_updated', post });
+  res.status(201).json(newComment);
+});
+
+app.get('/api/members', (req, res) => {
+  res.json(sgtShowDb.members || []);
+});
+
+app.put('/api/members/profile', (req, res) => {
+  const { email, displayName, bio, badge, isPublic, avatarColor, uid } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: "Email is required" });
+  }
+
+  let idx = (sgtShowDb.members || []).findIndex(m => m.email.toLowerCase() === email.toLowerCase());
+  if (idx === -1) {
+    const newMember: CommunityMember = {
+      uid: uid || `member-${Date.now()}`,
+      displayName: displayName || email.split('@')[0],
+      email: email,
+      bio: bio || "New SGT investor scout.",
+      badge: badge || "Retail Scout",
+      isPublic: isPublic !== undefined ? isPublic : true,
+      avatarColor: avatarColor || "bg-[#FE8C00]/10 text-[#FE8C00] border-[#FE8C00]/20",
+      createdAt: new Date().toISOString()
+    };
+    if (!sgtShowDb.members) sgtShowDb.members = [];
+    sgtShowDb.members.push(newMember);
+    saveDb();
+    return res.json(newMember);
+  } else {
+    sgtShowDb.members[idx] = {
+      ...sgtShowDb.members[idx],
+      displayName: displayName !== undefined ? displayName : sgtShowDb.members[idx].displayName,
+      bio: bio !== undefined ? bio : sgtShowDb.members[idx].bio,
+      badge: badge !== undefined ? badge : sgtShowDb.members[idx].badge,
+      isPublic: isPublic !== undefined ? isPublic : sgtShowDb.members[idx].isPublic,
+      avatarColor: avatarColor !== undefined ? avatarColor : sgtShowDb.members[idx].avatarColor,
+      uid: uid || sgtShowDb.members[idx].uid
+    };
+    saveDb();
+    return res.json(sgtShowDb.members[idx]);
+  }
+});
+
+app.get('/api/watchlists', (req, res) => {
+  res.json(sgtShowDb.watchlists);
+});
+
+app.post('/api/watchlists', (req, res) => {
+  const { name, description, assets, isSystem, creatorName } = req.body;
+  const newList: Watchlist = {
+    id: `watchlist-${Date.now()}`,
+    name,
+    description,
+    assets: assets || [],
+    isSystem: isSystem || false,
+    isFollowed: false,
+    creatorName: creatorName || "Retail Investor"
+  };
+
+  sgtShowDb.watchlists.push(newList);
+  saveDb();
+  res.status(201).json(newList);
+});
+
+app.put('/api/watchlists/:id', (req, res) => {
+  const { id } = req.params;
+  const idx = sgtShowDb.watchlists.findIndex(w => w.id === id);
+  if (idx === -1) return res.status(404).json({ error: "Watchlist not found" });
+
+  sgtShowDb.watchlists[idx] = {
+    ...sgtShowDb.watchlists[idx],
+    ...req.body
+  };
+  saveDb();
+  res.json(sgtShowDb.watchlists[idx]);
+});
+
+app.get('/api/notifications', (req, res) => {
+  res.json(sgtShowDb.notifications);
+});
+
+app.put('/api/notifications/:id/read', (req, res) => {
+  const not = sgtShowDb.notifications.find(n => n.id === req.params.id);
+  if (not) {
+    not.read = true;
+    saveDb();
+  }
+  res.json({ success: true });
+});
+
+app.post('/api/notifications/clear', (req, res) => {
+  sgtShowDb.notifications = [];
+  saveDb();
+  res.json({ success: true });
+});
+
+// Master Intelligent Ask API using Gemini with Search grounding
+app.post('/api/ai/assistant', async (req, res) => {
+  const { prompt, model } = req.body;
+  if (!prompt) return res.status(400).json({ error: "Question prompt is required" });
+
+  const activeModel = model || "gemma2-9b-it";
+  const client = getGeminiClient();
+
+  if (!client) {
+    // Elegant Offline Local simulation expert logic
+    let answer = `### 🧠 Sgt Show AI Assistant (Simulated: ${activeModel.toUpperCase()})
+
+Thanks for asking! I operate under high-grade simulated **${activeModel.toUpperCase()}** weights because your secret \`GEMINI_API_KEY\` is not currently configured in AI Studio.
+
+Here is what I know about your query using my localized parameters:
+- You asked: "**${prompt}**"
+- For global multi-market portfolios, current focus vectors center on **Federal Reserve lending lanes, Nvidia's CUDA graphics processor margins, sovereign central bank gold swaps, and institutional BTC ETF absorption support levels**.
+- A smart macro rule is: **Ignore daily short-term speculative noises. Focus on assets generating durable, compound cash yields!**
+
+To resolve this live using the real-time Gemini Search engine and the active **${activeModel}** model, configure your API key in **Settings > Secrets** in AI Studio!`;
+    
+    let sentiment: 'bullish' | 'bearish' | 'neutral' = "neutral";
+    let keyTakeaway = "Focus on assets generating real, durable global revenue under high-inflation shields.";
+
+    const query = prompt.toLowerCase();
+    if (query.includes("btc") || query.includes("bitcoin") || query.includes("crypto")) {
+      answer = `### 🧠 Why in-chain BTC accumulation matters (Simulated: ${activeModel.toUpperCase()})
+
+Right now, **Bitcoin (BTC)** is undergoing strategic low-volatility consolidation between the **$65,000 to $69,000** support thresholds.
+
+Here is the simple breakdown:
+1. **The Speculator Shakeout:** Retail capital is chasing high-velocity, low-liquidity memecoins on cheaper protocols like Solana.
+2. **The Sovereign Sweep:** Meanwhile, global retirement pools and pension funds are quietly acquiring Spot ETF units during range contractions.
+3. **Takeaway:** Low-volatility accumulation limits are historic setups for long-term price discoveries. Strategic investors remain highly bullish.`;
+      sentiment = "bullish";
+      keyTakeaway = "Retail is distracted by temporary network noise, while institutional giants build core trust allocations.";
+    } else if (query.includes("tesla") || query.includes("tsla")) {
+      answer = `### 🧠 Explain Tesla (TSLA) valuation drivers simply (Simulated: ${activeModel.toUpperCase()})
+
+**Tesla** matches a complex transition phase in global equities:
+1. **The Margin Headwinds:** Electric automobile margins are compressing due to intense price-cutting and hyper-competitive Chinese exports (BYD).
+2. **The Megapack Backstop:** Their battery energy grid sales (Megapacks) are growing at double-digit speeds, offsetting automobile declines.
+3. **The AI Beta:** Premium valuations are a direct bet on full self-driving network licensing (FSD) and humanoid robotics (Optimus) rather than metal automotive supply.`;
+      sentiment = "neutral";
+      keyTakeaway = "Tesla is shifting from a hardware auto manufacturer into an automated AI computing and grid storage utility.";
+    } else if (query.includes("nvda") || query.includes("nvidia")) {
+      answer = `### 🧠 Analyzing NVIDIA's short-term AI chip monopoly (Simulated: ${activeModel.toUpperCase()})
+
+**NVIDIA** is leading the structural global computing reshuffle:
+1. **Blackwell Backlog:** Supplies for next-generation Blackwell neural processors are fully booked for the next 12 months, locking in short-term cash flow predictability.
+2. **The CUDA software lock-in:** Developers train LLMs using Nvidia's unified runtime architectures. Shifting to competing custom ASICs is extremely complex and slow.
+3. **Key Indicator:** Watch cloud budget expenditures — as long as tech giants scale computing leases, Nvidia's pricing power stays absolute.`;
+      sentiment = "bullish";
+      keyTakeaway = "Nvidia is selling the virtual shovel loops inside the artificial intelligence gold rush, protected by their CUDA software moat.";
+    } else if (query.includes("gold") || query.includes("xau") || query.includes("commodity")) {
+      answer = `### 🧠 Gold's historic sovereign asset run (Simulated: ${activeModel.toUpperCase()})
+
+**Gold Spot (XAU)** is flashing powerful structural triggers:
+1. **Systemic Debasement Protection:** Global central banks are actively diversifying away from paper yield reserves in favor of physical raw bullion.
+2. **Geopolitical Weaponization:** Holding physical gold in domestic vaults removes third-party sanction risks and currency freezes.
+3. **Macro Pivot:** Gold thrives when real interest rates cool, making current resilience during hawkish regimes exceptionally bullish.`;
+      sentiment = "bullish";
+      keyTakeaway = "Gold acts as the ultimate ancient anchor when paper currencies inflate and global sovereign trust fragments.";
+    }
+
+    return res.json({
+      answer,
+      sentiment,
+      keyTakeaway,
+      modelUsed: activeModel
+    });
+  }
+
+  try {
+    const isOopModel = activeModel.startsWith("gemma") || activeModel.startsWith("llama") || activeModel.startsWith("qwen");
+    // Standardize Gemini supported models on the enterprise API tier
+    const targetModel = isOopModel ? "gemini-3.5-flash" : activeModel;
+
+    const systemPrompt = `You are the ultimate digital investing intelligence partner: the "Sgt Show AI Assistant", running on the **${activeModel}** model.
+Your mission is to help global retail investors understand financial markets clearly.
+Provide a beginner-friendly, insight-driven answer that is highly conversational yet objective.
+Avoid heavy financial jargon of legacy trading platforms, instead focus on simplifying complex stock, crypto, commodity, and forex terms.
+
+Analyze the question: "${prompt}" and reply with a structured breakdown. Be friendly, clean, and inspiring. Use bold text and bullet points.
+Also, classify the overall market outlook sentiment for this search query into either: 'bullish', 'bearish', or 'neutral'.
+
+Your response must be returned in JSON format matching this schema:
+{
+  "answer": "Pristine markdown format string breaking down the concepts cleanly. Introduce why it matters and list key takeaways. (Mention at the end that this analysis is processed via ${activeModel})",
+  "sentiment": "bullish" | "bearish" | "neutral",
+  "keyTakeaway": "1-sentence golden rule or actionable insight summary for a retail investor."
+}`;
+
+    const response = await client.models.generateContent({
+      model: targetModel,
+      contents: systemPrompt,
+      config: {
+        tools: [{ googleSearch: {} }], // Real web search grounding!
+        responseMimeType: "application/json"
+      }
+    });
+
+    try {
+      const parsed = JSON.parse(response.text.trim());
+      res.json({
+        ...parsed,
+        modelUsed: activeModel
+      });
+    } catch {
+      // Clean up markup markdown wrappers if any
+      let cleaned = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+      try {
+        const parsed = JSON.parse(cleaned);
+        res.json({
+          ...parsed,
+          modelUsed: activeModel
+        });
+      } catch {
+        res.json({
+          answer: response.text + `\n\n*(Processed via ${activeModel} optimization engine)*`,
+          sentiment: "neutral",
+          keyTakeaway: "Markets reward patience and structural intelligence. Block out the daily noise!",
+          modelUsed: activeModel
+        });
+      }
+    }
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Gemini processing failed" });
+  }
+});
+
+// Setup Vite & static serving
 async function startServer() {
-  const server = createServer(app);
-
   if (process.env.NODE_ENV !== "production") {
-    // Dev Mode via Vite middleware
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    // Production Mode serving compiled static assets
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
@@ -1283,15 +1060,15 @@ async function startServer() {
     });
   }
 
-  // Bind WebSocket upgrade handling
+  // Handle WebSocket manual upgrade
   server.on('upgrade', (request, socket, head) => {
     wss.handleUpgrade(request, socket, head, (ws) => {
       wss.emit('connection', ws, request);
     });
   });
 
-  server.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server fully operational with WebSocket support on core port ${PORT}`);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Sgt Show dev server executing on port ${PORT}`);
   });
 }
 

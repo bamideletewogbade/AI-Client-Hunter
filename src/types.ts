@@ -1,76 +1,113 @@
 /**
- * AI Client Hunter Types & Interfaces
+ * Sgt Show Investing Intelligence Platform - Interface Definitions
  */
 
-export interface BusinessAnalysis {
+export interface NewsItem {
+  title: string;
   summary: string;
-  digitalPresenceSummary: string;
-  presenceStrength: 'low' | 'medium' | 'high';
-  operationalPainPoints: string[];
-  systemsNeeded: string[];
-  aiOpportunities: string[];
-  digitalMaturityScore: number;
+  interpretation: string;
+  source: string;
+  date: string;
 }
 
-export interface WebDesignStructureSection {
-  sectionName: string;
-  purpose: string;
-  contentHint: string;
+export interface Asset {
+  id: string; // e.g. "ngx-gtco", "us-tsla", "crypto-btc"
+  name: string;
+  ticker: string;
+  price: number;
+  changePercent: number;
+  type: 'stock' | 'crypto' | 'forex' | 'commodity';
+  market: 'us' | 'crypto' | 'global';
+  description: string;
+  beginnerExplanation: string;
+  sentiment: 'bullish' | 'bearish' | 'neutral';
+  stats: {
+    peRatio?: string;
+    marketCap?: string;
+    high52w?: string;
+    low52w?: string;
+    volume?: string;
+    dividendYield?: string;
+  };
+  bullishCase: string;
+  bearishCase: string;
+  news: NewsItem[];
 }
 
-export interface WebDesignProposal {
-  needDetectedReason: string;
-  suggestedType: string;
-  structure: WebDesignStructureSection[];
-  heroHeadline: string;
-  heroSubheadline: string;
-  selectedCta: string;
-  estimatedValue: string;
-  readyToSellOffer: string;
+export interface Comment {
+  id: string;
+  postId: string;
+  content: string;
+  authorName: string;
+  authorEmail: string;
+  authorAvatar?: string;
+  reaction?: 'bullish' | 'bearish' | 'neutral' | null;
+  createdAt: string;
 }
 
-export interface OutreachPitch {
-  email: string;
-  linkedin: string;
-  whatsapp: string;
+export interface DiscussionPost {
+  id: string;
+  assetId?: string; // Optional links to asset
+  sector: 'banks' | 'tech' | 'crypto' | 'general';
+  title: string;
+  content: string;
+  authorName: string;
+  authorEmail: string;
+  authorAvatar?: string;
+  reactions: {
+    bullish: number;
+    bearish: number;
+    neutral: number;
+  };
+  userReaction?: 'bullish' | 'bearish' | 'neutral' | null;
+  comments: Comment[];
+  createdAt: string;
+  aiSummary?: string;
 }
 
-export interface Lead {
+export interface Watchlist {
   id: string;
   name: string;
-  category: string;
-  phone: string | null;
-  address: string;
-  rating: number | null;
-  reviewsCount: number | null;
-  website: string | null;
-  mapsUrl: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  status: 'new' | 'contacted' | 'replied' | 'interested' | 'closed';
-  notes: string;
-  tags: string[];
-  serviceType: 'ai_automation' | 'web_design' | 'hybrid';
-  digitalPresenceScore: number;
+  description?: string;
+  assets: string[]; // List of asset IDs
+  isSystem: boolean;
+  isFollowed?: boolean;
+  creatorName?: string;
+}
+
+export interface SgtShowInsight {
+  id: string;
+  content: string; // Original Twitter post body
+  aiSummary: string; // AI breakout of points
+  sentiment: 'bullish' | 'bearish' | 'neutral';
   createdAt: string;
-  aiAnalysis?: BusinessAnalysis | null;
-  webDesignProposal?: WebDesignProposal | null;
-  outreachPitch?: OutreachPitch | null;
+  assets?: string[]; // Related asset tickers e.g. ["BTC", "GTCO"]
+  fullAnalysisId?: string; // Links to asset page if breakdown available
 }
 
-export interface DashboardStats {
-  totalLeads: number;
-  noWebsite: number;
-  contactedLeads: number;
-  repliesReceived: number;
-  meetingsBooked: number;
-  conversionRate: number;
-  estimatedPipelineRevenue: number;
+export interface UserNotification {
+  id: string;
+  title: string;
+  body: string;
+  category: 'movement' | 'insight' | 'discussion' | 'watchlist';
+  createdAt: string;
+  read: boolean;
 }
 
-export interface SearchQueryConfig {
-  query: string;
-  location?: string;
-  industry?: string;
-  hasNoWebsiteOnly?: boolean;
+export interface AskResponse {
+  answer: string;
+  sentiment?: 'bullish' | 'bearish' | 'neutral';
+  keyTakeaway?: string;
+  links?: { title: string; uri: string }[];
+}
+
+export interface CommunityMember {
+  uid: string;
+  displayName: string;
+  email: string;
+  createdAt: string;
+  isPublic: boolean;
+  avatarColor: string;
+  badge: string; // e.g. "Senior Advisor", "Market Analyst", etc
+  bio: string;
 }
