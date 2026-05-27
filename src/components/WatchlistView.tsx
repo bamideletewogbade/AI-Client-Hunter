@@ -1,6 +1,7 @@
 import React, { useState, useEffect, DragEvent } from 'react';
 import { Sparkles, Trash2, FolderPlus, Eye, TrendingUp, AlertCircle, Plus, Share2, GripVertical } from 'lucide-react';
 import { Asset, Watchlist } from '../types';
+import { sgtAgent } from '../agent';
 
 interface WatchlistViewProps {
   onSelectAsset: (id: string) => void;
@@ -24,13 +25,11 @@ export default function WatchlistView({ onSelectAsset, watchlistIds, onToggleWat
   const loadData = async () => {
     try {
       const [r1, r2] = await Promise.all([
-        fetch('/api/assets'),
-        fetch('/api/watchlists')
+        sgtAgent.dispatch({ type: 'FETCH_ASSETS' }),
+        sgtAgent.dispatch({ type: 'FETCH_WATCHLISTS' }),
       ]);
-      if (r1.ok && r2.ok) {
-        setAssets(await r1.json());
-        setWatchlists(await r2.json());
-      }
+      setAssets(r1.assets);
+      setWatchlists(r2.watchlists);
     } catch (e) {
       console.error(e);
     } finally {
@@ -45,17 +44,16 @@ export default function WatchlistView({ onSelectAsset, watchlistIds, onToggleWat
   const createFolder = async () => {
     if (!newFolderName.trim()) return;
     try {
-      const resp = await fetch('/api/watchlists', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const result = await sgtAgent.dispatch({
+        type: 'CREATE_WATCHLIST',
+        data: {
           name: newFolderName,
           description: newFolderDesc,
           assets: [],
           isSystem: false
-        })
+        }
       });
-      if (resp.ok) {
+      if (result.success) {
         setNewFolderName('');
         setNewFolderDesc('');
         setShowFolderModal(false);

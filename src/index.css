@@ -82,3 +82,57 @@ body {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* ─── Mobile Optimization Utilities ───────────────────────────── */
+
+/* Minimum touch target size */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Bottom sheet behavior for mobile modals */
+@media (max-width: 639px) {
+  .modal-bottom-sheet {
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    margin-top: auto !important;
+    max-height: 85vh !important;
+    max-height: 85dvh !important;
+  }
+}
+
+/* Prevent horizontal overflow on mobile */
+@media (max-width: 767px) {
+  .overflow-x-safe {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .overflow-x-safe::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Safe area padding for modern mobile browsers */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Enhanced tap highlight prevention */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth momentum scroll on iOS */
+.ios-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Minimum readable text size */
+@media (max-width: 639px) {
+  .min-text-sm {
+    font-size: 0.8125rem !important; /* 13px minimum */
+  }
+}

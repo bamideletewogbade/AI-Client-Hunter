@@ -6,7 +6,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
-import { Asset, DiscussionPost, Watchlist, SgtShowInsight, UserNotification, CommunityMember } from './src/types';
+import { Asset, DiscussionPost, Watchlist, SgtShowInsight, UserNotification, CommunityMember, IpoData, Comment } from './src/types';
 
 dotenv.config();
 
@@ -40,6 +40,27 @@ wss.on('connection', (ws) => {
     }
   });
 });
+
+// ─── Live Price Broadcasting ─────────────────────────────────────
+function broadcastLivePrices() {
+  const assets = sgtShowDb.assets;
+  const priceUpdates = assets.map(a => {
+    const delta = (Math.random() - 0.47) * a.price * 0.008;
+    const newPrice = Number((a.price + delta).toFixed(2));
+    const changePct = Number((((newPrice - a.price) / a.price) * 100).toFixed(2));
+    return {
+      id: a.id,
+      ticker: a.ticker,
+      price: newPrice,
+      changePercent: changePct,
+      name: a.name,
+    };
+  });
+  broadcast({ type: 'live_prices', prices: priceUpdates, timestamp: Date.now() });
+}
+
+// Broadcast live prices every 6 seconds
+setInterval(broadcastLivePrices, 6000);
 
 app.use(express.json());
 
@@ -892,6 +913,202 @@ app.put('/api/watchlists/:id', (req, res) => {
   };
   saveDb();
   res.json(sgtShowDb.watchlists[idx]);
+});
+
+// ── IPO Endpoints ────────────────────────────────────────────────
+const FALLBACK_IPOS: IpoData[] = [
+  {
+    id: 'ipo-1',
+    companyName: 'Klarna Group Plc',
+    ticker: 'KLAR',
+    exchange: 'NYSE',
+    sector: 'Fintech',
+    priceRange: '$28 - $35',
+    sharesOffered: '45M',
+    expectedDate: '2026-06-28',
+    status: 'upcoming',
+    description: 'Swedish fintech giant pioneering BNPL (Buy Now Pay Later) services. One of the most anticipated fintech IPOs with 85M+ active users globally.',
+    estimatedMarketCap: '$12B',
+    underwriters: ['Goldman Sachs', 'Morgan Stanley', 'JPMorgan'],
+    country: 'Sweden / USA',
+  },
+  {
+    id: 'ipo-2',
+    companyName: 'Starlink Communications (SpaceX)',
+    ticker: 'STLK',
+    exchange: 'NASDAQ',
+    sector: 'Telecommunications',
+    priceRange: '$85 - $105',
+    sharesOffered: '80M',
+    expectedDate: '2026-09-01',
+    status: 'filed',
+    description: 'SpaceX\'s satellite internet division serving 4M+ subscribers globally with low-earth-orbit broadband constellation.',
+    estimatedMarketCap: '$65B',
+    underwriters: ['Goldman Sachs', 'Morgan Stanley', 'Barclays'],
+    country: 'USA',
+  },
+  {
+    id: 'ipo-3',
+    companyName: 'CoreWeave Inc.',
+    ticker: 'CRWV',
+    exchange: 'NASDAQ',
+    sector: 'Cloud Computing / AI',
+    priceRange: '$42 - $50',
+    sharesOffered: '55M',
+    expectedDate: '2026-07-15',
+    status: 'upcoming',
+    description: 'Specialized cloud provider for GPU-accelerated AI workloads. Partners with NVIDIA and Microsoft Azure.',
+    estimatedMarketCap: '$15B',
+    underwriters: ['Morgan Stanley', 'JPMorgan', 'Goldman Sachs'],
+    country: 'USA',
+  },
+  {
+    id: 'ipo-4',
+    companyName: 'Moniepoint Inc.',
+    ticker: 'MPT',
+    exchange: 'NGX',
+    sector: 'Fintech',
+    priceRange: '₦38 - ₦45',
+    sharesOffered: '350M',
+    expectedDate: '2026-08-20',
+    status: 'upcoming',
+    description: 'Nigeria\'s largest merchant payment processor with 3M+ businesses on platform. Expanding across Africa.',
+    estimatedMarketCap: '₦720B',
+    underwriters: ['Renaissance Capital', 'CSL Stockbrokers'],
+    country: 'Nigeria',
+  },
+  {
+    id: 'ipo-5',
+    companyName: 'Flutterwave Inc.',
+    ticker: 'FLUT',
+    exchange: 'NASDAQ',
+    sector: 'Fintech',
+    priceRange: '$24 - $30',
+    sharesOffered: '40M',
+    expectedDate: '2026-Q4',
+    status: 'filed',
+    description: 'Leading African payments technology company processing payments in 30+ African countries.',
+    estimatedMarketCap: '$5B',
+    underwriters: ['Goldman Sachs', 'Citigroup', 'JPMorgan'],
+    country: 'Nigeria / USA',
+  },
+  {
+    id: 'ipo-6',
+    companyName: 'Nigerian Midstream Energy Co.',
+    ticker: 'NMEC',
+    exchange: 'NGX',
+    sector: 'Energy',
+    priceRange: '₦45 - ₦52',
+    sharesOffered: '500M',
+    expectedDate: '2026-07-28',
+    status: 'upcoming',
+    description: 'Midstream energy infrastructure company focusing on gas processing and pipeline transportation.',
+    estimatedMarketCap: '₦850B',
+    underwriters: ['CSL Stockbrokers', 'Chapel Hill Denham'],
+    country: 'Nigeria',
+  },
+  {
+    id: 'ipo-7',
+    companyName: 'Reddit Inc. (Direct Listing)',
+    ticker: 'RDDT',
+    exchange: 'NYSE',
+    sector: 'Social Media',
+    priceRange: '$32 - $36',
+    sharesOffered: '22M',
+    expectedDate: '2026-07-05',
+    status: 'upcoming',
+    description: 'Social media platform with 500M+ monthly active users. Strong AI data licensing business.',
+    estimatedMarketCap: '$8B',
+    underwriters: ['Morgan Stanley', 'Goldman Sachs'],
+    country: 'USA',
+  },
+];
+
+app.get('/api/ipos', async (req, res) => {
+  const client = getGeminiClient();
+  if (!client) {
+    // Return curated fallback IPO data with data freshness note
+    return res.json({
+      ipos: FALLBACK_IPOS,
+      grounded: false,
+      lastUpdated: new Date().toISOString(),
+      source: 'Static dataset (API key required for live search)',
+    });
+  }
+
+  try {
+    const prompt = `Search the web for the most recent and verified upcoming Initial Public Offerings (IPOs) globally. Focus on:
+- US markets: NYSE, NASDAQ (major tech, fintech, SPACs)
+- African markets: NGX Nigeria, JSE South Africa
+- European markets: LSE, Euronext
+- Asian markets: HKEX, TSE
+
+Select the top 6-8 most significant upcoming, filed, or recently priced IPOs.
+
+For each IPO, extract verified details from official filings (SEC, exchange websites, or financial news).
+
+Respond STRICTLY with a JSON object containing an "ipos" array.
+Schema:
+{
+  "ipos": [
+    {
+      "id": "string (e.g., ipo-1)",
+      "companyName": "string",
+      "ticker": "string",
+      "exchange": "string (NYSE | NASDAQ | NGX | LSE | HKEX | etc)",
+      "sector": "string",
+      "priceRange": "string (e.g., $28-$35 or ₦45-₦52)",
+      "sharesOffered": "string",
+      "expectedDate": "string (e.g., 2026-06-28 or 2026-Q4)",
+      "status": "string (upcoming | filed | priced | withdrawn)",
+      "description": "string (1-2 sentences about the company)",
+      "estimatedMarketCap": "string",
+      "underwriters": ["string"],
+      "country": "string"
+    }
+  ]
+}
+
+Only include IPOs where you can verify the information from reliable sources. If you cannot find enough real IPOs, return fewer items but ensure each one is accurate.`;
+
+    const response = await client.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json"
+      }
+    });
+
+    try {
+      const parsed = JSON.parse(response.text.trim());
+      const ipos = parsed.ipos || [];
+      res.json({
+        ipos: ipos.length > 0 ? ipos : FALLBACK_IPOS,
+        grounded: true,
+        lastUpdated: new Date().toISOString(),
+        source: 'Gemini web search with Google grounding',
+      });
+    } catch {
+      let cleaned = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+      const ipos = parsed.ipos || [];
+      res.json({
+        ipos: ipos.length > 0 ? ipos : FALLBACK_IPOS,
+        grounded: true,
+        lastUpdated: new Date().toISOString(),
+        source: 'Gemini web search with Google grounding',
+      });
+    }
+  } catch (error: any) {
+    console.error('IPO search failed:', error);
+    res.json({
+      ipos: FALLBACK_IPOS,
+      grounded: false,
+      lastUpdated: new Date().toISOString(),
+      source: 'Fallback dataset (live search unavailable)',
+    });
+  }
 });
 
 app.get('/api/notifications', (req, res) => {

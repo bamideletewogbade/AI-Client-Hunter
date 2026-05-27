@@ -111,3 +111,21 @@ export interface CommunityMember {
   badge: string; // e.g. "Senior Advisor", "Market Analyst", etc
   bio: string;
 }
+
+export interface IpoData {
+  id: string;
+  companyName: string;
+  ticker: string;
+  exchange: string;
+  sector: string;
+  priceRange: string;
+  sharesOffered: string;
+  expectedDate: string;
+  status: 'upcoming' | 'priced' | 'withdrawn' | 'filed';
+  description: string;
+  estimatedMarketCap: string;
+  underwriters: string[];
+  logo?: string;
+  country: string;
+  source?: string;
+}

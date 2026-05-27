@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Bell, Sparkles, LogIn, LogOut, Check, ChevronDown, MessageSquare, Newspaper, Twitter, ShieldCheck } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { UserNotification } from '../types';
+import { sgtAgent } from '../agent';
 
 interface HeaderProps {
   activeTab: string;
@@ -19,15 +20,8 @@ export default function Header({ activeTab, setActiveTab, onSearch, unassignedNo
   const [sgtHubDropdownOpen, setSgtHubDropdownOpen] = useState(false);
 
   const fetchNotifs = async () => {
-    try {
-      const resp = await fetch('/api/notifications');
-      if (resp.ok) {
-        const data = await resp.json();
-        setNotificationsList(data);
-      }
-    } catch (e) {
-      console.error(e);
-    }
+    const result = await sgtAgent.dispatch({ type: 'FETCH_NOTIFICATIONS' });
+    setNotificationsList(result.notifications);
   };
 
   useEffect(() => {
@@ -37,21 +31,13 @@ export default function Header({ activeTab, setActiveTab, onSearch, unassignedNo
   }, []);
 
   const markRead = async (id: string) => {
-    try {
-      await fetch(`/api/notifications/${id}/read`, { method: 'PUT' });
-      fetchNotifs();
-    } catch (e) {
-      console.error(e);
-    }
+    await sgtAgent.dispatch({ type: 'MARK_NOTIFICATION_READ', notificationId: id });
+    fetchNotifs();
   };
 
   const clearAllNotifs = async () => {
-    try {
-      await fetch('/api/notifications/clear', { method: 'POST' });
-      fetchNotifs();
-    } catch (e) {
-      console.error(e);
-    }
+    await sgtAgent.dispatch({ type: 'CLEAR_NOTIFICATIONS' });
+    fetchNotifs();
   };
 
   const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -116,6 +102,21 @@ export default function Header({ activeTab, setActiveTab, onSearch, unassignedNo
             }`}
           >
             Markets
+          </button>
+
+          {/* IPOs */}
+          <button
+            onClick={() => {
+              setActiveTab('ipos');
+              setSgtHubDropdownOpen(false);
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all cursor-pointer ${
+              activeTab === 'ipos' 
+                ? 'text-[#FE8C00] bg-zinc-900/60 font-bold' 
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-900/30'
+            }`}
+          >
+            IPOs
           </button>
 
           {/* SGT Hub Submenu dropdown */}
@@ -333,11 +334,11 @@ export default function Header({ activeTab, setActiveTab, onSearch, unassignedNo
         </div>
       </div>
 
-      {/* COMPANION: Clean Mobile Navigation Tray with grouped drop structures */}
-      <div className="md:hidden border-t border-zinc-900/40 bg-zinc-950/40 p-2 flex items-center justify-around text-center w-full">
+      {/* COMPANION: Touch-optimized Mobile Navigation Tray */}
+      <div className="md:hidden border-t border-zinc-900/40 bg-zinc-950/40 p-1.5 flex items-center justify-around text-center w-full safe-bottom">
         <button
           onClick={() => setActiveTab('welcome')}
-          className={`text-[9.5px] font-mono uppercase font-bold px-3 py-1.5 rounded-lg ${
+          className={`text-[9.5px] font-mono uppercase font-bold px-2.5 py-2.5 min-h-[44px] rounded-lg transition-all ${
             activeTab === 'welcome' ? 'text-[#FE8C00] bg-zinc-900/70' : 'text-zinc-500'
           }`}
         >
@@ -345,7 +346,7 @@ export default function Header({ activeTab, setActiveTab, onSearch, unassignedNo
         </button>
         <button
           onClick={() => setActiveTab('markets')}
-          className={`text-[9.5px] font-mono uppercase font-bold px-3 py-1.5 rounded-lg ${
+          className={`text-[9.5px] font-mono uppercase font-bold px-2.5 py-2.5 min-h-[44px] rounded-lg transition-all ${
             activeTab === 'markets' ? 'text-[#FE8C00] bg-zinc-900/70' : 'text-zinc-500'
           }`}
         >
@@ -353,7 +354,7 @@ export default function Header({ activeTab, setActiveTab, onSearch, unassignedNo
         </button>
         <button
           onClick={() => setActiveTab('feed')}
-          className={`text-[9.5px] font-mono uppercase font-bold px-3 py-1.5 rounded-lg ${
+          className={`text-[9.5px] font-mono uppercase font-bold px-2.5 py-2.5 min-h-[44px] rounded-lg transition-all ${
             activeTab === 'feed' ? 'text-[#FE8C00] bg-zinc-900/70' : 'text-zinc-500'
           }`}
         >
@@ -361,7 +362,7 @@ export default function Header({ activeTab, setActiveTab, onSearch, unassignedNo
         </button>
         <button
           onClick={() => setActiveTab('sgtshow')}
-          className={`text-[9.5px] font-mono uppercase font-bold px-3 py-1.5 rounded-lg ${
+          className={`text-[9.5px] font-mono uppercase font-bold px-2.5 py-2.5 min-h-[44px] rounded-lg transition-all ${
             activeTab === 'sgtshow' ? 'text-[#FE8C00] bg-zinc-900/70' : 'text-zinc-500'
           }`}
         >
@@ -369,11 +370,19 @@ export default function Header({ activeTab, setActiveTab, onSearch, unassignedNo
         </button>
         <button
           onClick={() => setActiveTab('community')}
-          className={`text-[9.5px] font-mono uppercase font-bold px-3 py-1.5 rounded-lg ${
+          className={`text-[9.5px] font-mono uppercase font-bold px-2.5 py-2.5 min-h-[44px] rounded-lg transition-all ${
             activeTab === 'community' ? 'text-[#FE8C00] bg-zinc-900/70' : 'text-zinc-500'
           }`}
         >
           Community
+        </button>
+        <button
+          onClick={() => setActiveTab('ipos')}
+          className={`text-[9.5px] font-mono uppercase font-bold px-2.5 py-2.5 min-h-[44px] rounded-lg transition-all ${
+            activeTab === 'ipos' ? 'text-[#FE8C00] bg-zinc-900/70' : 'text-zinc-500'
+          }`}
+        >
+          IPOs
         </button>
       </div>
     </header>

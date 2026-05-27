@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { MessageSquare, Sparkles, Send, Flame, ThumbsUp, Plus } from 'lucide-react';
+import { MessageSquare, Sparkles, Send, Flame, ThumbsUp, Plus, Bookmark, Eye, Trophy, Zap, Shield, Star } from 'lucide-react';
 import { DiscussionPost, Comment, CommunityMember } from '../types';
+import { sgtAgent } from '../agent';
 import { useAuth } from './AuthContext';
 
 interface CommunityViewProps {
@@ -31,6 +32,16 @@ export default function CommunityView({ onSelectAsset }: CommunityViewProps) {
   const [newSector, setNewSector] = useState<'banks' | 'tech' | 'crypto' | 'general'>('general');
   const [newReaction, setNewReaction] = useState<'bullish' | 'bearish' | 'neutral'>('neutral');
 
+  // Saved/bookmarked debates
+  const [savedPostIds, setSavedPostIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('sgt_saved_debates') || '[]');
+    } catch { return []; }
+  });
+
+  // Presence indicators (simulated)
+  const [liveViewers, setLiveViewers] = useState<Record<string, number>>({});
+  
   // Comments/threads expansion
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
   const [newCommentTexts, setNewCommentTexts] = useState<{ [postId: string]: string }>({});
@@ -38,10 +49,8 @@ export default function CommunityView({ onSelectAsset }: CommunityViewProps) {
 
   const fetchPosts = async () => {
     try {
-      const resp = await fetch('/api/discussions');
-      if (resp.ok) {
-        setPosts(await resp.json());
-      }
+      const result = await sgtAgent.dispatch({ type: 'FETCH_DISCUSSIONS' });
+      setPosts(result.posts);
     } catch (e) {
       console.error(e);
     } finally {
@@ -52,10 +61,8 @@ export default function CommunityView({ onSelectAsset }: CommunityViewProps) {
   const fetchMembers = async () => {
     setMembersLoading(true);
     try {
-      const resp = await fetch('/api/members');
-      if (resp.ok) {
-        setMembers(await resp.json());
-      }
+      const result = await sgtAgent.dispatch({ type: 'FETCH_MEMBERS' });
+      setMembers(result.members);
     } catch (e) {
       console.error(e);
     } finally {
@@ -66,10 +73,9 @@ export default function CommunityView({ onSelectAsset }: CommunityViewProps) {
   const handleSaveSettings = async () => {
     if (!user || !user.email) return;
     try {
-      const resp = await fetch('/api/members/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const result = await sgtAgent.dispatch({
+        type: 'SAVE_PROFILE',
+        data: {
           email: user.email,
           displayName: settingsName || user.email.split('@')[0],
           bio: settingsBio,
@@ -77,10 +83,9 @@ export default function CommunityView({ onSelectAsset }: CommunityViewProps) {
           isPublic: settingsIsPublic,
           avatarColor: settingsColor,
           uid: user.uid
-        })
+        }
       });
-      if (resp.ok) {
-        const saved = await resp.json();
+      if (result.success) {
         const customEvent = new CustomEvent('show-toast', {
           detail: {
             message: `Profile settings updated successfully!`,
@@ -125,19 +130,18 @@ export default function CommunityView({ onSelectAsset }: CommunityViewProps) {
   const handleCreatePost = async () => {
     if (!newTitle.trim() || !newContent.trim()) return;
     try {
-      const resp = await fetch('/api/discussions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const result = await sgtAgent.dispatch({
+        type: 'CREATE_DISCUSSION',
+        data: {
           sector: newSector,
           title: newTitle,
           content: newContent,
           authorName: user?.displayName || "Alpha Retailer",
           authorEmail: user?.email || "guest@sgtshow.com",
           userReaction: newReaction
-        })
+        }
       });
-      if (resp.ok) {
+      if (result.success) {
         setNewTitle('');
         setNewContent('');
         setShowCreateModal(false);
@@ -153,17 +157,17 @@ export default function CommunityView({ onSelectAsset }: CommunityViewProps) {
     if (!text || !text.trim()) return;
 
     try {
-      const resp = await fetch(`/api/discussions/${postId}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const result = await sgtAgent.dispatch({
+        type: 'ADD_COMMENT',
+        postId,
+        data: {
           content: text.trim(),
           authorName: user?.displayName || "Market Observer",
           authorEmail: user?.email || "guest@sgtshow.com",
           reaction: newCommentReaction
-        })
+        }
       });
-      if (resp.ok) {
+      if (result.success) {
         setNewCommentTexts({
           ...newCommentTexts,
           [postId]: ''
@@ -174,6 +178,65 @@ export default function CommunityView({ onSelectAsset }: CommunityViewProps) {
     } catch (e) {
       console.error(e);
     }
+  };
+
+  // Simulate live presence viewers for each post
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLiveViewers(prev => {
+        const next = { ...prev };
+        posts.forEach(p => {
+          // Random viewer count between 1 and 12 per post
+          next[p.id] = Math.floor(Math.random() * 11) + 1;
+        });
+        return next;
+      });
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [posts]);
+
+  // Save/unsave debate
+  const toggleSaved = (postId: string) => {
+    setSavedPostIds(prev => {
+      const next = prev.includes(postId)
+        ? prev.filter(id => id !== postId)
+        : [...prev, postId];
+      localStorage.setItem('sgt_saved_debates', JSON.stringify(next));
+      
+      const toastEvt = new CustomEvent('show-toast', {
+        detail: {
+          message: next.includes(postId) ? 'Debate saved to your research board' : 'Removed from saved debates',
+          type: 'info'
+        }
+      });
+      window.dispatchEvent(toastEvt);
+      return next;
+    });
+  };
+
+  // XP badge mapping
+  const getXpBadge = (member: CommunityMember) => {
+    const totalComments = posts.filter(p => p.comments.some(c => c.authorEmail === member.email)).length;
+    if (totalComments > 10) return { icon: '🏆', label: 'Elite Analyst', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' };
+    if (totalComments > 5) return { icon: '⭐', label: 'Verified Scout', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' };
+    if (totalComments > 2) return { icon: '📡', label: 'Active Researcher', color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' };
+    return { icon: '🟢', label: 'Community Member', color: 'text-zinc-400 bg-zinc-800/30 border-zinc-800/40' };
+  };
+
+  // Reaction emoji picker
+  const EMOJI_REACTIONS = ['👍', '🔥', '💡', '📉', '📈', '👀', '🚀', '🧐'];
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState<string | null>(null);
+  const [postEmojiReactions, setPostEmojiReactions] = useState<Record<string, Record<string, number>>>({});
+
+  const handleEmojiReact = (postId: string, emoji: string) => {
+    setPostEmojiReactions(prev => ({
+      ...prev,
+      [postId]: {
+        ...(prev[postId] || {}),
+        [emoji]: (prev[postId]?.[emoji] || 0) + 1
+      }
+    }));
+    setEmojiPickerOpen(null);
   };
 
   const handlePostReaction = async (postId: string, reactionType: 'bullish' | 'bearish' | 'neutral') => {
@@ -390,6 +453,20 @@ export default function CommunityView({ onSelectAsset }: CommunityViewProps) {
                           👎 Bearish ({post.reactions.bearish})
                         </button>
                       </div>
+
+                      {/* Save/Bookmark debate button */}
+                      <button
+                        onClick={() => toggleSaved(post.id)}
+                        className={`ml-auto flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-mono font-bold uppercase border transition-all cursor-pointer ${
+                          savedPostIds.includes(post.id)
+                            ? 'text-[#FE8C00] bg-[#FE8C00]/10 border-[#FE8C00]/30'
+                            : 'text-zinc-500 hover:text-zinc-300 border-zinc-800 hover:border-zinc-700'
+                        }`}
+                        title={savedPostIds.includes(post.id) ? 'Remove from saved debates' : 'Save debate to research board'}
+                      >
+                        <Bookmark className={`h-3.5 w-3.5 ${savedPostIds.includes(post.id) ? 'fill-[#FE8C00]' : ''}`} />
+                        {savedPostIds.includes(post.id) ? 'Saved' : 'Save'}
+                      </button>
                     </div>
 
                     {/* Comments Expanded section */}
@@ -653,8 +730,8 @@ export default function CommunityView({ onSelectAsset }: CommunityViewProps) {
 
       {/* Raising Discussion Dialog modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/75 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-zinc-950/75 backdrop-blur-sm" onClick={() => setShowCreateModal(false)}>
+          <div className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 p-5 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto modal-bottom-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center border-b border-zinc-900 pb-3">
               <h3 className="font-display text-sm font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
                 <Flame className="h-4.5 w-4.5 text-[#FE8C00]" />

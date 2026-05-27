@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Sparkles, TrendingUp, AlertTriangle, ArrowUpRight, ArrowDownRight, MessageSquare, ExternalLink } from 'lucide-react';
 import { Asset, SgtShowInsight, DiscussionPost } from '../types';
+import { sgtAgent } from '../agent';
 
 interface SmartFeedProps {
   onSelectAsset: (id: string) => void;
@@ -16,15 +17,13 @@ export default function SmartFeedView({ onSelectAsset, setActiveTab }: SmartFeed
   const loadData = async () => {
     try {
       const [r1, r2, r3] = await Promise.all([
-        fetch('/api/assets'),
-        fetch('/api/insights'),
-        fetch('/api/discussions')
+        sgtAgent.dispatch({ type: 'FETCH_ASSETS' }),
+        sgtAgent.dispatch({ type: 'FETCH_INSIGHTS' }),
+        sgtAgent.dispatch({ type: 'FETCH_DISCUSSIONS' }),
       ]);
-      if (r1.ok && r2.ok && r3.ok) {
-        setAssets(await r1.json());
-        setInsights(await r2.json());
-        setDiscussions(await r3.json());
-      }
+      setAssets(r1.assets);
+      setInsights(r2.insights);
+      setDiscussions(r3.posts);
     } catch (e) {
       console.error("Failed loading feed metrics:", e);
     } finally {

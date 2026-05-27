@@ -5,6 +5,7 @@ import {
   Share2, RefreshCw, Send, Check 
 } from 'lucide-react';
 import { Asset, Comment, Watchlist } from '../types';
+import { sgtAgent } from '../agent';
 import { useAuth } from './AuthContext';
 
 interface AssetDetailPageProps {
@@ -28,11 +29,8 @@ export default function AssetDetailPage({ assetId, onBack, watchlistIds, onToggl
 
   const loadAssetData = async () => {
     try {
-      const r = await fetch(`/api/assets/${assetId}`);
-      if (r.ok) {
-        const data = await r.json();
-        setAsset(data);
-      }
+      const result = await sgtAgent.dispatch({ type: 'FETCH_ASSET_DETAIL', assetId });
+      setAsset(result.asset);
     } catch (e) {
       console.error(e);
     }
@@ -40,16 +38,12 @@ export default function AssetDetailPage({ assetId, onBack, watchlistIds, onToggl
 
   const loadCommunityDiscussions = async () => {
     try {
-      const resp = await fetch('/api/discussions');
-      if (resp.ok) {
-        const list = await resp.json();
-        // Look for discussions linked to this assetId
-        const linked = list.find((d: any) => d.assetId === assetId);
-        if (linked) {
-          setComments(linked.comments || []);
-        } else {
-          setComments([]);
-        }
+      const result = await sgtAgent.dispatch({ type: 'FETCH_DISCUSSIONS' });
+      const linked = result.posts.find((d: any) => d.assetId === assetId);
+      if (linked) {
+        setComments(linked.comments || []);
+      } else {
+        setComments([]);
       }
     } catch (e) {
       console.error(e);
@@ -66,13 +60,8 @@ export default function AssetDetailPage({ assetId, onBack, watchlistIds, onToggl
     setLoadingAi(true);
     setAiAnalysisCustom(null);
     try {
-      const response = await fetch(`/api/assets/${asset.id}/ai-analysis`, {
-        method: 'POST'
-      });
-      if (response.ok) {
-        const body = await response.json();
-        setAiAnalysisCustom(body.analysis);
-      }
+      const result = await sgtAgent.dispatch({ type: 'AI_ANALYSIS', assetId: asset.id });
+      setAiAnalysisCustom(result.analysis);
     } catch (e) {
       console.error(e);
     } finally {
@@ -85,37 +74,41 @@ export default function AssetDetailPage({ assetId, onBack, watchlistIds, onToggl
     try {
       // Find the associated discussion or post it
       let discId = assetId === 'us-nvda' ? 'disc-1' : assetId === 'crypto-btc' ? 'disc-2' : '';
-      if (!discId) { // create dynamic thread locally
-        const discResp = await fetch('/api/discussions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+      if (!discId) {
+        // create dynamic thread via agent
+        const createResult = await sgtAgent.dispatch({
+          type: 'CREATE_DISCUSSION',
+          data: {
             sector: asset.type === 'crypto' ? 'crypto' : 'general',
             title: `Community outlook debate on ${asset.ticker}`,
             content: `What is your price expectation of ${asset.name} for this quarter?`,
             authorName: user?.displayName || "Local Investor",
             authorEmail: user?.email || "guest@sgtshow.com",
             assetId: asset.id
-          })
+          }
         });
-        if (discResp.ok) {
-          const discBody = await discResp.json();
-          discId = discBody.id;
+        if (createResult.success && createResult.id) {
+          discId = createResult.id;
         }
       }
 
-      const commentResp = await fetch(`/api/discussions/${discId}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      if (!discId) {
+        console.error('Could not find or create discussion thread');
+        return;
+      }
+
+      const commentResult = await sgtAgent.dispatch({
+        type: 'ADD_COMMENT',
+        postId: discId,
+        data: {
           content: newCommentText,
           authorName: user?.displayName || "Visitor Investor",
           authorEmail: user?.email || "guest@sgtshow.com",
           reaction: commentReactionFilter
-        })
+        }
       });
 
-      if (commentResp.ok) {
+      if (commentResult.success) {
         setNewCommentText('');
         setCommentReactionFilter(null);
         loadCommunityDiscussions();
@@ -492,8 +485,8 @@ Analyze global markets simply @ Sgt Show!`;
 
       {/* Share Export Modal Overlay */}
       {showShareModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-6 text-left shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-zinc-950/70 backdrop-blur-sm" onClick={() => setShowShareModal(false)}>
+          <div className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 p-5 sm:p-6 text-left shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto modal-bottom-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center border-b border-zinc-900 pb-3">
               <h3 className="font-display text-sm font-bold text-white flex items-center gap-1.5">
                 <Share2 className="h-4 w-4 text-[#FE8C00]" />

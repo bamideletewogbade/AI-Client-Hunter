@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Sparkles, Twitter, ExternalLink, RefreshCw, Send, Check } from 'lucide-react';
 import { SgtShowInsight } from '../types';
+import { sgtAgent } from '../agent';
 
 interface SgtHubViewProps {
   onSelectAsset: (id: string) => void;
@@ -16,16 +17,10 @@ export default function SgtHubView({ onSelectAsset }: SgtHubViewProps) {
   const [successMsg, setSuccessMsg] = useState(false);
 
   const fetchInsights = async () => {
-    try {
-      const resp = await fetch('/api/insights');
-      if (resp.ok) {
-        setInsights(await resp.json());
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true);
+    const result = await sgtAgent.dispatch({ type: 'FETCH_INSIGHTS' });
+    setInsights(result.insights);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -44,17 +39,16 @@ export default function SgtHubView({ onSelectAsset }: SgtHubViewProps) {
       if (lower.includes("btc") || lower.includes("bitcoin")) tokens.push("BTC");
       if (lower.includes("sol") || lower.includes("solana")) tokens.push("SOL");
 
-      const response = await fetch('/api/insights', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const result = await sgtAgent.dispatch({
+        type: 'POST_INSIGHT',
+        data: {
           content: newTweetInput,
           sentiment: lower.includes("🚀") || lower.includes("bullish") || lower.includes("buying") ? "bullish" : lower.includes("📉") || lower.includes("bearish") || lower.includes("selling") ? "bearish" : "neutral",
           relatedAssets: tokens
-        })
+        }
       });
 
-      if (response.ok) {
+      if (result.success) {
         setNewTweetInput('');
         setSuccessMsg(true);
         setTimeout(() => setSuccessMsg(false), 3000);

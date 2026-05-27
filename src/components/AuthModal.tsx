@@ -44,7 +44,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050506]/90 backdrop-blur-sm animate-fade-in">
       <div 
-        className="relative w-full max-w-md overflow-hidden rounded-2xl border border-zinc-900 bg-[#0C0C0E] p-6 text-left shadow-2xl space-y-5"
+        className="relative w-full max-w-md overflow-hidden rounded-2xl sm:rounded-2xl rounded-b-none sm:rounded-b-2xl border border-zinc-900 bg-[#0C0C0E] p-5 sm:p-6 text-left shadow-2xl space-y-5 sm:mb-0 modal-bottom-sheet"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Background glow node */}

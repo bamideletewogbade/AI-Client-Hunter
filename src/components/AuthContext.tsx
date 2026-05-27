@@ -14,6 +14,15 @@ import {
   googleProvider 
 } from '../firebase';
 
+// Toggle this to true for development — auto-logs a test user without needing the auth modal
+const DEV_BYPASS_AUTH = true;
+
+// Hardcoded test account credentials (always works when DEV_BYPASS_AUTH is active)
+const TEST_ACCOUNT = {
+  email: 'test@sgtshow.com',
+  password: 'test123',
+};
+
 interface SgtUser extends Partial<User> {
   uid: string;
   displayName: string | null;
@@ -38,8 +47,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SgtUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Synchronize Auth State
+    // Synchronize Auth State
   useEffect(() => {
+    // DEV BYPASS — auto-authenticate as test user so no modal interaction is needed
+    if (DEV_BYPASS_AUTH) {
+      const savedUser = localStorage.getItem('sgt_simulated_user');
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+        } catch (e) {
+          // ignore
+        }
+      } else {
+        const testUser: SgtUser = {
+          uid: 'dev-test-user',
+          displayName: 'Test Investor',
+          email: TEST_ACCOUNT.email,
+          photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop',
+          isCommunityMember: true,
+        };
+        setUser(testUser);
+        localStorage.setItem('sgt_simulated_user', JSON.stringify(testUser));
+      }
+      setLoading(false);
+      return;
+    }
+
     if (!isFirebaseConfigured || !auth) {
       // Look for a persisted simulated session
       const savedUser = localStorage.getItem('sgt_simulated_user');
@@ -142,6 +175,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithEmail = async (email: string, pass: string) => {
+    // Hardcoded test account — always works during development
+    if (DEV_BYPASS_AUTH && email === TEST_ACCOUNT.email && pass === TEST_ACCOUNT.password) {
+      const mock: SgtUser = {
+        uid: 'mock-test-account',
+        displayName: 'Test Investor',
+        email: TEST_ACCOUNT.email,
+        photoURL: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=256&auto=format&fit=crop',
+        isCommunityMember: true,
+      };
+      setUser(mock);
+      localStorage.setItem('sgt_simulated_user', JSON.stringify(mock));
+      window.dispatchEvent(
+        new CustomEvent('show-toast', {
+          detail: { message: 'Test account signed in. SGT Show Community membership: Yes.', type: 'success' }
+        })
+      );
+      return;
+    }
+
     if (!isFirebaseConfigured || !auth) {
       const mock = {
         uid: "mock-user-email",
@@ -182,11 +234,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     localStorage.removeItem('sgt_simulated_user');
-    if (!isFirebaseConfigured || !auth) {
+    if (DEV_BYPASS_AUTH || !isFirebaseConfigured || !auth) {
       setUser(null);
       window.dispatchEvent(
         new CustomEvent('show-toast', {
-          detail: { message: "Disengaged account session.", type: 'info' }
+          detail: { message: "Disengaged account session. Refresh the page to auto-login as Test Investor.", type: 'info' }
         })
       );
       return;

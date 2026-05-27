@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Sparkles, TrendingUp, TrendingDown, Eye, Check, Plus, FolderHeart } from 'lucide-react';
 import { Asset, Watchlist } from '../types';
+import { sgtAgent } from '../agent';
 import WatchlistView from './WatchlistView';
 
 interface MarketsViewProps {
@@ -18,10 +19,8 @@ export default function MarketsView({ onSelectAsset, watchlistIds, onToggleWatch
 
   const fetchAssets = async () => {
     try {
-      const r = await fetch('/api/assets');
-      if (r.ok) {
-        setAssets(await r.json());
-      }
+      const result = await sgtAgent.dispatch({ type: 'FETCH_ASSETS' });
+      setAssets(result.assets);
     } catch (e) {
       console.error(e);
     } finally {

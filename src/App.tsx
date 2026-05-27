@@ -1,19 +1,22 @@
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
-import LandingView from './components/LandingView';
+import LandingView from './components/LandingView_fixed';
 import SmartFeedView from './components/SmartFeedView';
 import MarketsView from './components/MarketsView';
 import AssetDetailPage from './components/AssetDetailPage';
 import CommunityView from './components/CommunityView';
 import SgtHubView from './components/SgtHubView';
+import IpoView from './components/IpoView';
 import AiAssistant from './components/AiAssistant';
 import AuthModal from './components/AuthModal';
+import OnboardingModal from './components/OnboardingModal';
 import { AuthProvider } from './components/AuthContext';
+import { LivePriceProvider } from './context/LivePriceContext';
 import { CalendarRange, Target, AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'welcome' | 'feed' | 'markets' | 'community' | 'sgtshow'>('welcome');
+  const [activeTab, setActiveTab] = useState<'welcome' | 'feed' | 'markets' | 'community' | 'sgtshow' | 'ipos'>('welcome');
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [watchlistIds, setWatchlistIds] = useState<string[]>([]);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -135,6 +138,7 @@ export default function App() {
 
   return (
     <AuthProvider>
+      <LivePriceProvider>
       <div id="sgt-viewport-root" className="min-h-screen bg-[#0C0C0E] text-zinc-100 antialiased font-sans selection:bg-[#FE8C00]/15 selection:text-[#FE8C00]">
         
         {/* Top Header */}
@@ -207,6 +211,10 @@ export default function App() {
                       onSelectAsset={(id) => setSelectedAssetId(id)}
                     />
                   )}
+
+                  {activeTab === 'ipos' && (
+                    <IpoView />
+                  )}
                 </>
               )}
             </motion.div>
@@ -229,6 +237,9 @@ export default function App() {
 
         {/* Persistent Floating AI Assistant */}
         <AiAssistant />
+
+        {/* Onboarding Flow */}
+        <OnboardingModal />
 
         {/* Unified Auth Modal */}
         <AuthModal 
@@ -273,6 +284,7 @@ export default function App() {
         </AnimatePresence>
 
       </div>
+      </LivePriceProvider>
     </AuthProvider>
   );
 }

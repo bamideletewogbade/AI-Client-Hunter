@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, Send, ArrowRight, X, MessageSquare, ShieldAlert } from 'lucide-react';
+import { Sparkles, Send, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { sgtAgent } from '../agent';
 
 interface Message {
   id: string;
@@ -13,6 +14,26 @@ interface Message {
 export default function AiAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState('gemma2-9b-it');
+  const [serverStatus, setServerStatus] = useState<'checking' | 'connected' | 'offline'>('checking');
+
+  // Check server connection via WebSocket or health probe
+  useEffect(() => {
+    let cancelled = false;
+    const checkConnection = async () => {
+      try {
+        const resp = await fetch('/api/assets', { method: 'HEAD', signal: AbortSignal.timeout(5000) });
+        if (!cancelled) setServerStatus(resp.ok ? 'connected' : 'offline');
+      } catch {
+        if (!cancelled) setServerStatus('offline');
+      }
+    };
+    checkConnection();
+    const interval = setInterval(checkConnection, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "wel-1",
@@ -51,27 +72,15 @@ I can analyze global tech giants, explain stock valuation multiples, audit macro
     setLoading(true);
 
     try {
-      const resp = await fetch('/api/ai/assistant', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ prompt: textToSend, model: selectedModel })
-      });
-
-      if (resp.ok) {
-        const body = await resp.json();
-        const assistantMsg: Message = {
-          id: `ai-${Date.now()}`,
-          sender: 'assistant',
-          text: body.answer,
-          sentiment: body.sentiment,
-          keyTakeaway: body.keyTakeaway
-        };
-        setMessages(prev => [...prev, assistantMsg]);
-      } else {
-        throw new Error();
-      }
+      const result = await sgtAgent.dispatch({ type: 'AI_ASSISTANT', prompt: textToSend, model: selectedModel });
+      const assistantMsg: Message = {
+        id: `ai-${Date.now()}`,
+        sender: 'assistant',
+        text: result.answer,
+        sentiment: result.sentiment,
+        keyTakeaway: result.keyTakeaway
+      };
+      setMessages(prev => [...prev, assistantMsg]);
     } catch (e) {
       const errorMsg: Message = {
         id: `ai-err-${Date.now()}`,
@@ -114,9 +123,16 @@ I can analyze global tech giants, explain stock valuation multiples, audit macro
                 <div>
                   <h3 className="text-xs font-bold text-white flex items-center gap-1">
                     Sgt Copilot
-                    <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className={`flex h-1.5 w-1.5 rounded-full ${
+                      serverStatus === 'connected' ? 'bg-emerald-500' : serverStatus === 'offline' ? 'bg-rose-500' : 'bg-amber-500'
+                    } animate-pulse`} />
                   </h3>
-                  <p className="text-[9px] font-mono text-[#FE8C00] font-bold">SOVEREIGN AI AGENT</p>
+                  <p className="text-[9px] font-mono font-bold">
+                    <span className={serverStatus === 'connected' ? 'text-emerald-400' : serverStatus === 'offline' ? 'text-rose-400' : 'text-amber-400'}>
+                      {serverStatus === 'connected' ? '● LIVE' : serverStatus === 'offline' ? '● OFFLINE' : '● CHECKING'}
+                    </span>
+                    <span className="text-[#FE8C00] ml-1">SOVEREIGN AI AGENT</span>
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
@@ -132,7 +148,7 @@ I can analyze global tech giants, explain stock valuation multiples, audit macro
                 </select>
                 <button 
                   onClick={() => setIsOpen(false)}
-                  className="p-1.5 rounded-md border border-zinc-805 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                  className="p-1.5 rounded-md border border-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -146,7 +162,7 @@ I can analyze global tech giants, explain stock valuation multiples, audit macro
                   key={idx}
                   onClick={() => handleSend(p)}
                   disabled={loading}
-                  className="shrink-0 text-[10px] font-sans font-bold px-2.5 py-1 rounded-lg border border-zinc-808 bg-zinc-900/60 text-zinc-400 hover:text-white hover:border-[#FE8C00]/40 transition-all cursor-pointer"
+                  className="shrink-0 text-[10px] font-sans font-bold px-2.5 py-1 rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:border-[#FE8C00]/40 transition-all cursor-pointer"
                 >
                   {p}
                 </button>
@@ -171,7 +187,7 @@ I can analyze global tech giants, explain stock valuation multiples, audit macro
                       <div className={`p-3 rounded-xl whitespace-pre-line border text-[11px] leading-normal ${
                         isAi 
                           ? 'bg-zinc-950/20 border-zinc-900/25 text-zinc-200' 
-                          : 'bg-[#FE8C00] border-zinc-808 text-zinc-950 font-bold'
+                          : 'bg-[#FE8C00] border-zinc-800 text-zinc-950 font-bold'
                       }`}>
                         {m.text}
                       </div>
@@ -181,10 +197,10 @@ I can analyze global tech giants, explain stock valuation multiples, audit macro
                         <div className="rounded-lg border border-zinc-900 bg-zinc-950/40 p-2 space-y-1 text-[10px] text-zinc-400">
                           {m.sentiment && (
                             <div className="flex items-center gap-1">
-                              <span className="text-[8px] font-mono text-zinc-550 uppercase">Bias:</span>
+                              <span className="text-[8px] font-mono text-zinc-500 uppercase">Bias:</span>
                               <span className={`text-[8px] font-bold uppercase ${
                                 m.sentiment === 'bullish' ? 'text-emerald-400' :
-                                m.sentiment === 'bearish' ? 'text-rose-450' : 'text-zinc-400'
+                                m.sentiment === 'bearish' ? 'text-rose-500' : 'text-zinc-400'
                               }`}>
                                 {m.sentiment}
                               </span>
